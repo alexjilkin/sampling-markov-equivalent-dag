@@ -27,22 +27,27 @@ def count(G: nx.Graph):
     plt.show()
     while len(Q) > 0:
         v = Q.pop(0)
+        visited.append(v)
         neighbours = list(filter(lambda neighbour: neighbour not in visited, clique_tree.neighbors(v)))
-        visited.extend(neighbours)
         Q.extend(neighbours)
 
         # product of #AMOs for the subproblems
         prod = 1
         for H in C(G, set(v)):
-            prod *= count(H)
+            res = count(H)
+            print(res)
+            prod = prod * res
+            
         fp = FP(clique_tree, r, v)
 
         # Add zero to ease calculations
         fp.append({})
         fp_len = list(map(lambda a: len(a), fp))
         fp_len.reverse()
-        sum += phi(len(set(v)), 0, fp_len) * prod 
+
+        sum += phi(len(set(v)), 0, fp_len, {}) * prod 
     memo[G] = sum
+
     return sum
 
 
@@ -60,14 +65,14 @@ def FP(T, r, v):
     return res
 
 
-
-pmemo = {}
 fmemo = {}
 
 def fac(n):
     if n in fmemo.keys():
         return fmemo[n]
     
+    if n == -1:
+        return 0
     if n == 1:
         return 1
     
@@ -75,13 +80,13 @@ def fac(n):
     fmemo[n] = res
     return res
 
-def phi(cliquesize, i, fp):
+def phi(cliquesize, i, fp, pmemo):
     if i in pmemo.keys():
         return pmemo[i]
     
     sum = fac(cliquesize - fp[i])
     for j in range (i+1, len(fp)):
-        sum -= fac(fp[j]-fp[i]) * phi(cliquesize, j, fp)
+        sum -= fac(fp[j]-fp[i]) * phi(cliquesize, j, fp, pmemo)
     pmemo[i] = sum
     return sum
 
@@ -116,14 +121,13 @@ def C(G: nx.Graph, K: set):
     return output
 
     
-# def phi(clique_tree, v):
-
-
 G = nx.Graph()
 
-G.add_nodes_from([1, 2, 3, 4, 5, 6, 7])
-G.add_edges_from([(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3,5), (3,6),(4,5), (4,6), (5,6), (5, 7), (6, 7)])
+G.add_nodes_from([1, 2, 3, 4, 5, 6])
+G.add_edges_from([(1, 2), (1, 3), (2,3), (2,5), (2, 6), (2,4), (3, 4), (3, 5), (3,6), (4, 5), (5, 6)])
 
+# G.add_nodes_from([1, 2, 3, 4, 5, 6, 7])
+# G.add_edges_from([(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3,5), (3,6),(4,5), (4,6), (5,6), (5, 7), (6, 7)])
 print(f"#AMO={count(G)}")
 
 # def sample(G)
