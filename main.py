@@ -13,6 +13,18 @@ def count(G: nx.Graph):
     if G in memo:
         return G
     
+    # Find all cliques in the junction tree
+    all_cliques = list(nx.find_cliques(G))
+
+    # Filter out cliques that are subsets of others
+    maximal_cliques = []
+    for clique in all_cliques:
+        if not any(set(clique) < set(other) for other in maximal_cliques):
+            maximal_cliques.append(clique)
+
+    maximal_cliques = map(set, maximal_cliques)
+    maximal_cliques = list(map(tuple, maximal_cliques))
+
     clique_tree = nx.junction_tree(G)
     visited = []
     
@@ -28,9 +40,13 @@ def count(G: nx.Graph):
     while len(Q) > 0:
         v = Q.pop(0)
         visited.append(v)
-        neighbours = list(filter(lambda neighbour: neighbour not in visited, clique_tree.neighbors(v)))
+        
+
+        neighbours = list(filter(lambda neighbor: neighbor not in visited, clique_tree.neighbors(v)))
         Q.extend(neighbours)
 
+        if (v not in maximal_cliques):
+            continue
         # product of #AMOs for the subproblems
         prod = 1
         for H in C(G, set(v)):
@@ -39,8 +55,6 @@ def count(G: nx.Graph):
             
         fp = FP(clique_tree, r, v)
          # Add zero to ease calculations
-        fp = set(tuple(s) for s in fp)
-        fp = list(map(set, fp))
         fp.append({})
         
         fp_len = list(map(lambda a: len(a) , fp))
@@ -56,8 +70,8 @@ def count(G: nx.Graph):
 
 def FP(T, r, v):
     res = []
-    if (r == v):
-        return res
+    # if (r == v):
+    #     res.append({})
     
     path = list(nx.shortest_path(T, r, v))
     p = len(path)
@@ -66,6 +80,9 @@ def FP(T, r, v):
         intersection = {value for value in path[i] if value in path[i + 1]}
         res.append(intersection)
     
+    res = set(tuple(s) for s in res)
+    res = list(map(set, res))
+    print(res)
     return res
 
 fmemo = {}
