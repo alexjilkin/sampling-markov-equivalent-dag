@@ -35,19 +35,22 @@ def count(G: nx.Graph):
         prod = 1
         for H in C(G, set(v)):
             res = count(H)
-            print(res)
             prod = prod * res
             
         fp = FP(clique_tree, r, v)
-
-        # Add zero to ease calculations
+         # Add zero to ease calculations
+        fp = set(tuple(s) for s in fp)
+        fp = list(map(set, fp))
         fp.append({})
-        fp_len = list(map(lambda a: len(a), fp))
+        
+        fp_len = list(map(lambda a: len(a) , fp))
         fp_len.reverse()
-
-        sum += phi(len(set(v)), 0, fp_len, {}) * prod 
+        phi_res =  phi(len(set(v)), 0, fp_len, {})
+        print(f"{v}: phi={phi_res}, prod={prod}")
+        sum += phi_res * prod 
+        
     memo[G] = sum
-
+    
     return sum
 
 
@@ -58,12 +61,12 @@ def FP(T, r, v):
     
     path = list(nx.shortest_path(T, r, v))
     p = len(path)
+
     for i in range(0, p - 1):
         intersection = {value for value in path[i] if value in path[i + 1]}
         res.append(intersection)
     
     return res
-
 
 fmemo = {}
 
@@ -76,7 +79,7 @@ def fac(n):
     if n == 1:
         return 1
     
-    res = fac(n-1) * n
+    res = fac(n - 1) * n
     fmemo[n] = res
     return res
 
@@ -90,24 +93,28 @@ def phi(cliquesize, i, fp, pmemo):
     pmemo[i] = sum
     return sum
 
-# C_G(K) - algorithem 4
+# C_G(K) - algorithm 4
 def C(G: nx.Graph, K: set):
     S = [K, set(G.nodes) - K]
 
     to = []
     L = []
     output = []
+    visited = []
+    
     while len(S) != 0:
-        X = S[0]
-        # Should be arbitrary
+        X = list(filter(lambda s: len(s) != 0, S))[0]
         v = random.choice(list(X))
         to.append(v)
 
         is_in_L = any((v in el) for el in L)
         if (not is_in_L and (v not in K)):
-            L.append(X)
-            # TODO: Output the undirected components of G[X].
-            output.append(G.subgraph(X).copy())
+            L.append(X.copy())
+            # Output the undirected components of G[X].
+            components = nx.connected_components(G.subgraph(X))
+            subgraphs = [G.subgraph(component) for component in components]
+
+            output += subgraphs
         
         X.remove(v)
         S_new = []
