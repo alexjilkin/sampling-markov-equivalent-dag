@@ -48,11 +48,10 @@ def count(G: nx.Graph):
             prod = prod * res
             
         fp = FP(clique_tree, r, v)
-         # Add zero to ease calculations
-        fp.append({})
+
         
         fp_len = list(map(lambda a: len(a) , fp))
-        fp_len.reverse()
+        fp_len.insert(0, 0)
         phi_res =  phi(len(set(v)), 0, fp_len, {})
         print(f"{v}: phi={phi_res}, prod={prod}")
         sum += phi_res * prod 
