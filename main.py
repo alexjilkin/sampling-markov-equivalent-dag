@@ -1,19 +1,13 @@
-import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-import math
 
 memo = {}
-# print(r)
-    # print(list(clique_tree.neighbors(r)))
-   
-
 def count(G: nx.Graph):
-    if G in memo:
-        return G
+    G_hash = nx.graph_hashing.weisfeiler_lehman_graph_hash(G)
     
-   
+    if G_hash in memo.keys():
+        return memo[G_hash]
     
     clique_tree = nx.junction_tree(G)
     visited = []
@@ -56,16 +50,13 @@ def count(G: nx.Graph):
         print(f"{v}: phi={phi_res}, prod={prod}")
         sum += phi_res * prod 
         
-    memo[G] = sum
+    memo[G_hash] = sum
     
     return sum
 
-
 def FP(T, r, v):
     res = []
-    # if (r == v):
-    #     res.append({})
-    
+
     path = list(nx.shortest_path(T, r, v))
     p = len(path)
 
@@ -110,7 +101,6 @@ def C(G: nx.Graph, K: set):
     to = []
     L = []
     output = []
-    visited = []
     
     while len(S) != 0:
         X = list(filter(lambda s: len(s) != 0, S))[0]
@@ -124,7 +114,9 @@ def C(G: nx.Graph, K: set):
             components = nx.connected_components(G.subgraph(X))
             subgraphs = [G.subgraph(component) for component in components]
 
-            output += subgraphs
+            return subgraphs
+            # Make sure that it is not actually needed
+            # output += subgraphs
         
         X.remove(v)
         S_new = []
@@ -146,6 +138,3 @@ G.add_edges_from([(1, 2), (1, 3), (2,3), (2,5), (2, 6), (2,4), (3, 4), (3, 5), (
 # G.add_nodes_from([1, 2, 3, 4, 5, 6, 7])
 # G.add_edges_from([(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3,5), (3,6),(4,5), (4,6), (5,6), (5, 7), (6, 7)])
 print(f"#AMO={count(G)}")
-
-# def sample(G)
-#     clique
