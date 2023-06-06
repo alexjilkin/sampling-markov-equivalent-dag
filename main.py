@@ -17,7 +17,7 @@ def count(G: nx.Graph):
     maximal_cliques = list(map(lambda clique: tuple(sorted(clique)), nx.find_cliques(G)))
     
     r = maximal_cliques[0]
-    print(f"r={r}")
+    # print(f"r={r}")
     sum = 0
     Q = [r]
     visited = [r]
@@ -46,7 +46,7 @@ def count(G: nx.Graph):
         fp_len = list(map(lambda a: len(a) , fp))
         fp_len.insert(0, 0)
         phi_res =  phi(len(set(v)), 0, fp_len, {})
-        print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
+        # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
         sum += phi_res * prod 
         
     memo[G_hash] = sum
@@ -130,7 +130,7 @@ def C(G: nx.Graph, K: set):
 
 
 def from_file():
-    file = open('./peo-n=16-2-nr=1.gr', 'r')
+    file = open('./subtree-n=512-logn-nr=1.gr', 'r')
     # file = open('./sample.gr', 'r')
     G = nx.Graph()
     lines = [tuple(map(int, line.strip().split(" "))) for line in file.readlines()]
