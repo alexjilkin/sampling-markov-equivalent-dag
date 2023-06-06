@@ -13,22 +13,15 @@ def count(G: nx.Graph):
     if G in memo:
         return G
     
-    # Find all cliques in the junction tree
-    all_cliques = list(nx.find_cliques(G))
-
-    # Filter out cliques that are subsets of others
-    maximal_cliques = []
-    for clique in all_cliques:
-        if not any(set(clique) < set(other) for other in maximal_cliques):
-            maximal_cliques.append(clique)
-
-    maximal_cliques = map(set, maximal_cliques)
-    maximal_cliques = list(map(tuple, maximal_cliques))
-
+   
+    
     clique_tree = nx.junction_tree(G)
     visited = []
     
-    r = list(clique_tree.nodes)[0]
+    # Filter out cliques that are subsets of others
+    maximal_cliques = list(map(lambda clique: tuple(set(clique)), nx.find_cliques(G)))
+    
+    r = maximal_cliques[0]
 
     sum = 0
     Q = [r]
@@ -41,12 +34,13 @@ def count(G: nx.Graph):
         v = Q.pop(0)
         visited.append(v)
         
-
         neighbours = list(filter(lambda neighbor: neighbor not in visited, clique_tree.neighbors(v)))
         Q.extend(neighbours)
 
+        # Count only maximal cliques
         if (v not in maximal_cliques):
             continue
+        
         # product of #AMOs for the subproblems
         prod = 1
         for H in C(G, set(v)):
