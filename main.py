@@ -2,28 +2,45 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import hashlib
 
 memo = {}
 def count(G: nx.Graph):
-    G_hash = nx.graph_hashing.weisfeiler_lehman_graph_hash(G)
+    # G_hash = nx.graph_hashing.weisfeiler_lehman_graph_hash(G)
+
+    hashable_graph = tuple(sorted(G.nodes.items()) + sorted(G.edges.items()))
+    G_hash = hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+
+    try:
+        res = memo[G_hash]
+        return res
+    except KeyError:
+        pass
     
-    if G_hash in memo.keys():
-        return memo[G_hash]
-    
-    clique_tree = nx.junction_tree(G)
+    clique_tree = nx.Graph()
     visited = []
     
     # Filter out cliques that are subsets of others
     maximal_cliques = list(map(lambda clique: tuple(sorted(clique)), nx.find_cliques(G)))
-    
+    clique_tree.add_nodes_from(maximal_cliques)
+
+    # Builds graph out of maximal cliques by content intersection
+    for clique1 in maximal_cliques:
+        for clique2 in maximal_cliques:
+            if (clique1 != clique2 and len(set(clique1).intersection(clique2)) > 0):
+                if(len([edge for edge in clique_tree.edges() if clique1 in edge]) == 0):
+                    clique_tree.add_edge(clique1, clique2)
+                    break
+
     r = maximal_cliques[0]
     # print(f"r={r}")
     sum = 0
+
     Q = [r]
     visited = [r]
 
     # nx.draw_networkx(clique_tree)
-    plt.show()
+    # plt.show()
     while len(Q) > 0:
         v = Q.pop(0)
         
@@ -47,7 +64,7 @@ def count(G: nx.Graph):
         fp_len.insert(0, 0)
         phi_res =  phi(len(set(v)), 0, fp_len, {})
         # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
-        sum += phi_res * prod 
+        sum += phi_res * prod
         
     memo[G_hash] = sum
     
@@ -104,8 +121,8 @@ def C(G: nx.Graph, K: set):
     
     while len(S) != 0:
         X = list(filter(lambda s: len(s) != 0, S))[0]
-        v = list(X)[0]
-        # v = random.choice(list(X))
+        # v = list(X)[0]
+        v = random.choice(list(X))
         to.append(v)
 
         is_in_L = any((v in el) for el in L)
@@ -130,8 +147,8 @@ def C(G: nx.Graph, K: set):
 
 
 def from_file():
-    file = open('./subtree-n=512-logn-nr=1.gr', 'r')
     # file = open('./sample.gr', 'r')
+    file = open('./interval-n=512-nr=1.gr', 'r')
     G = nx.Graph()
     lines = [tuple(map(int, line.strip().split(" "))) for line in file.readlines()]
     nodes_count = lines[0][0]
