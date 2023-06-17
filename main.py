@@ -10,7 +10,7 @@ def from_file():
     start = time.process_time()
 
     # file = open('./sample.gr', 'r')
-    file = open('./interval-n=1024-nr=1.gr', 'r')
+    file = open('./interval-n=512-nr=1.gr', 'r')
     G = nx.Graph()
     lines = [tuple(map(int, line.strip().split(" "))) for line in file.readlines()]
     nodes_count = lines[0][0]
@@ -21,14 +21,15 @@ def from_file():
     G.add_edges_from(edges)
     start = time.process_time()
     
-    # crap = count(G)
+    pool = mp.Pool(mp.cpu_count())
+    amo = count(G, pool)
 
-    print(f"#AMO={count(G)}")
+    print(f"#AMO={amo}")
 
     print(f"Total time: {time.process_time() - start}")
         
 # print(f"#AMO={count(G)}")
 
-
-from_file()
-print_profiling()
+if __name__ == '__main__':
+    from_file()
+    print_profiling()

@@ -7,7 +7,27 @@ import multiprocessing as mp
 
 memo = {}
 
-def count(G: nx.Graph):
+def v_func(G, r, v, clique_tree):
+        # product of #AMOs for the subproblems
+        prod = 1
+        subproblems = C(G, set(v))
+
+        results = []
+
+        results = [count(H) for H in subproblems]
+
+        for res in results:
+            prod *= res
+            
+        fp = FP(clique_tree, r, v)
+
+        fp_len = list(map(lambda a: len(a) , fp))
+        fp_len.insert(0, 0)
+        phi_res =  phi(len(set(v)), 0, fp_len, {})
+        # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
+        return phi_res * prod
+
+def count(G: nx.Graph, pool=None):
     start = time.process_time()
 
     hashable_graph = tuple(sorted(G.nodes.items()) + sorted(G.edges.items()))
@@ -32,58 +52,24 @@ def count(G: nx.Graph):
 
     record('clique_tree', time.process_time() - start)
     r = list(clique_tree.nodes)[0]
-    sum = 0
+    total_sum = 0
 
-    Q = [r]
-    visited = [r]
+    # Divide into subprocesses only at the root
+    if pool != None:
+        parallel_v = [pool.apply_async(v_func, (G, r, v, clique_tree)) for v in maximal_cliques]
+        results = [result.get() for result in parallel_v]
 
-    if __name__ == '__main__':
-        pool = mp.Pool()    
-    while len(Q) > 0:
-        v = Q.pop(0)
-        # Count only maximal cliques
-        if (v not in maximal_cliques):
-            continue
-
-        neighbors = list(filter(lambda neighbor: neighbor not in visited, clique_tree.neighbors(v)))
-        Q.extend(neighbors)
-        visited += neighbors
-
+        total_sum += sum(results)
+    else: 
+        for v in maximal_cliques:
+            total_sum += v_func(G, r, v, clique_tree)
         
-        # product of #AMOs for the subproblems
-        prod = 1
-        subproblems = C(G, set(v))
+    memo[G_hash] = total_sum
 
-        results = []
+    return total_sum
 
-        if __name__ == '__main__':
-            parallel = pool.map_async(count, subproblems)
-            results = parallel.get()
-        else: 
-            results = [count(H) for H in subproblems]
-
-        for res in results:
-            prod *= res
-            
-        fp = FP(clique_tree, r, v)
-
-        fp_len = list(map(lambda a: len(a) , fp))
-        fp_len.insert(0, 0)
-        phi_res =  phi(len(set(v)), 0, fp_len, {})
-        # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
-        sum += phi_res * prod
-        
-    memo[G_hash] = sum
-    # if __name__ == '__main__':
-    #     pool.join()
-
-    return sum
-
-total_FP = []
 
 def FP(T, r, v):
-    global total_FP
-
     start = time.process_time()
     res = []
 
