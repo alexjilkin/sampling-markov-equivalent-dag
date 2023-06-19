@@ -2,23 +2,24 @@ import networkx as nx
 import random
 import hashlib
 import time
-from profiling import record 
-import multiprocessing as mp
 
 memo = {}
 
-def v_func(G, r, v, clique_tree):
+def v_func(G, r, v, clique_tree, record):
         # product of #AMOs for the subproblems
         prod = 1
+        start = time.time()
         subproblems = C(G, set(v))
+        record('C_G', time.time() - start)
 
         results = []
 
-        results = [count(H) for H in subproblems]
+        results = [count(H, record) for H in subproblems]
 
         for res in results:
             prod *= res
-            
+        
+        start = time.time()
         fp = FP(clique_tree, r, v)
 
         fp_len = list(map(lambda a: len(a) , fp))
@@ -27,12 +28,12 @@ def v_func(G, r, v, clique_tree):
         # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
         return phi_res * prod
 
-def count(G: nx.Graph, pool=None):
-    start = time.process_time()
+def count(G: nx.Graph, record, pool=None):
+    start = time.time()
 
     hashable_graph = tuple(sorted(G.nodes.items()) + sorted(G.edges.items()))
     G_hash = hashlib.sha256(str(hashable_graph).encode()).hexdigest()
-    record('hash', time.process_time() - start)
+    record('hash', time.time() - start)
 
     try:
         res = memo[G_hash]
@@ -40,37 +41,33 @@ def count(G: nx.Graph, pool=None):
     except KeyError:
         pass
     
+    start = time.time()
     clique_tree = nx.junction_tree(G)
     # clique_tree = maximal_clique_tree(G)
-    
-    visited = []
-    
+        
     # Sort maximal cliques members to acsending tuples
     maximal_cliques = list(map(lambda clique: tuple(sorted(clique)), nx.find_cliques(G)))
-    
     # maximal_cliques = list(clique_tree.nodes)
 
-    record('clique_tree', time.process_time() - start)
+    record('clique_tree', time.time() - start)
     r = list(clique_tree.nodes)[0]
-    total_sum = 0
+    result = 0
 
     # Divide into subprocesses only at the root
     if pool != None:
-        parallel_v = [pool.apply_async(v_func, (G, r, v, clique_tree)) for v in maximal_cliques]
-        results = [result.get() for result in parallel_v]
+        parallel_v_results = [pool.apply_async(v_func, (G, r, v, clique_tree, record)) for v in maximal_cliques]
 
-        total_sum += sum(results)
+        result += sum([r.get() for r in parallel_v_results])
     else: 
         for v in maximal_cliques:
-            total_sum += v_func(G, r, v, clique_tree)
+            result += v_func(G, r, v, clique_tree, record)
         
-    memo[G_hash] = total_sum
+    memo[G_hash] = result
 
-    return total_sum
+    return result
 
 
 def FP(T, r, v):
-    start = time.process_time()
     res = []
 
     path = list(nx.shortest_path(T, r, v))
@@ -83,8 +80,6 @@ def FP(T, r, v):
     
     # Converted to set for uniqness and sorted
     res = set(tuple(sorted(s)) for s in res)
-
-    record('fp', time.process_time() - start)
     
     return list(res)
 
@@ -114,9 +109,7 @@ def phi(cliquesize, i, fp, pmemo):
     for j in range (i+1, len(fp)):
         sum -= fac(fp[j]-fp[i]) * phi(cliquesize, j, fp, pmemo)
     pmemo[i] = sum
-    record('phi', time.process_time() - start)
     return sum
-
 
 def maximal_clique_tree(G: nx.Graph):
     clique_tree = nx.Graph()
@@ -137,8 +130,6 @@ def maximal_clique_tree(G: nx.Graph):
 
 # C_G(K) - algorithm 4
 def C(G: nx.Graph, K: set):
-
-    start = time.process_time()
     S = [K, set(G.nodes) - K]
 
     to = []
@@ -168,7 +159,6 @@ def C(G: nx.Graph, K: set):
         
         S = list(filter(lambda S_new_i: len(S_new_i) > 0, S_new))
     
-    record('c', time.process_time() - start)
     return output
 
 def get_maximal_cliques(clique_tree: nx.Graph):
