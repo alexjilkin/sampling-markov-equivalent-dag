@@ -2,7 +2,7 @@ import networkx as nx
 import random
 import hashlib
 import time
-
+from functools import reduce
 memo = {}
 
 def v_func(G, r, v, clique_tree, record):
@@ -10,6 +10,7 @@ def v_func(G, r, v, clique_tree, record):
         prod = 1
         start = time.time()
         subproblems = C(G, set(v))
+        
         record('C_G', time.time() - start)
 
         results = []
@@ -41,27 +42,37 @@ def count(G: nx.Graph, record, pool=None):
     except KeyError:
         pass
     
-    start = time.time()
-    clique_tree = nx.junction_tree(G)
-    # clique_tree = maximal_clique_tree(G)
-        
-    # Sort maximal cliques members to acsending tuples
-    maximal_cliques = list(map(lambda clique: tuple(sorted(clique)), nx.find_cliques(G)))
-    # maximal_cliques = list(clique_tree.nodes)
+    G_subs = [G.subgraph(component) for component in nx.connected_components(G)]
 
-    record('clique_tree', time.time() - start)
-    r = list(clique_tree.nodes)[0]
-    result = 0
+    results = []
 
-    # Divide into subprocesses only at the root
-    if pool != None:
-        parallel_v_results = [pool.apply_async(v_func, (G, r, v, clique_tree, record)) for v in maximal_cliques]
+    for G_sub in G_subs:
+        result = 0
+        start = time.time()
+        clique_tree = nx.junction_tree(G_sub)
 
-        result += sum([r.get() for r in parallel_v_results])
-    else: 
-        for v in maximal_cliques:
-            result += v_func(G, r, v, clique_tree, record)
-        
+        # clique_tree = maximal_clique_tree(G)
+
+        record('clique_tree', time.time() - start)
+
+        r = list(clique_tree.nodes)[0]
+        # Sort maximal cliques members to acsending tuples
+        # maximal_cliques = list(map(lambda clique: tuple(sorted(clique)), nx.find_cliques(G)))
+        maximal_cliques = get_maximal_cliques(clique_tree)
+        # maximal_cliques = list(clique_tree.nodes)
+
+        # Divide into subprocesses only at the root
+        if pool != None:
+            parallel_v_results = [pool.apply_async(v_func, (G_sub, r, v, clique_tree, record)) for v in maximal_cliques]
+
+            result += sum([r.get() for r in parallel_v_results])
+        else: 
+            for v in maximal_cliques:
+                result += v_func(G_sub, r, v, clique_tree, record)
+
+        results.append(result)
+
+    result = reduce(lambda x, y: x*y, results)
     memo[G_hash] = result
 
     return result
@@ -69,9 +80,11 @@ def count(G: nx.Graph, record, pool=None):
 
 def FP(T, r, v):
     res = []
-
+    
     path = list(nx.shortest_path(T, r, v))
     p = len(path)
+    # except nx.exception.NetworkXNoPath:
+    #     return []
 
     for i in range(0, p - 1):
         intersection = {value for value in path[i] if value in path[i + 1]}

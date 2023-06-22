@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 from profiling import print_profiling, record
 import multiprocessing as mp
 
-vertices = [32, 64, 128, 256, 512, 1024, 2048]
+vertices = [16, 32, 64, 256]
 
 def from_file():
     times = []
-    graph_type = 'peo-4'
+    graph_type = 'subtree-logn'
     for vertex_count in vertices:
         start = time.time()
 
@@ -46,7 +46,7 @@ def from_file():
     ax.set_ylabel('Seconds')
 
     plt.title(graph_type)
-    plt.show()
+    # plt.show()
 
 if __name__ == '__main__':
     from_file()
