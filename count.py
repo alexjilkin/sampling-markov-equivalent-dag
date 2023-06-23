@@ -32,8 +32,10 @@ def v_func(G, r, v, clique_tree, record):
 def count(G: nx.Graph, record, pool=None):
     start = time.time()
 
-    hashable_graph = tuple(sorted(G.nodes.items()) + sorted(G.edges.items()))
-    G_hash = hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+    # hashable_graph = tuple(sorted(G.nodes.items()) + sorted(G.edges.items()))
+    # G_hash = hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+
+    G_hash = nx.weisfeiler_lehman_graph_hash(G)
     record('hash', time.time() - start)
 
     try:
@@ -42,8 +44,8 @@ def count(G: nx.Graph, record, pool=None):
     except KeyError:
         pass
     
+    # Get connected components of the graph
     G_subs = [G.subgraph(component) for component in nx.connected_components(G)]
-
     results = []
 
     for G_sub in G_subs:
@@ -53,13 +55,11 @@ def count(G: nx.Graph, record, pool=None):
 
         # clique_tree = maximal_clique_tree(G)
 
-        record('clique_tree', time.time() - start)
-
         r = list(clique_tree.nodes)[0]
-        # Sort maximal cliques members to acsending tuples
         # maximal_cliques = list(map(lambda clique: tuple(sorted(clique)), nx.find_cliques(G)))
         maximal_cliques = get_maximal_cliques(clique_tree)
-        # maximal_cliques = list(clique_tree.nodes)
+
+        record('clique_tree', time.time() - start)
 
         # Divide into subprocesses only at the root
         if pool != None:
@@ -76,7 +76,6 @@ def count(G: nx.Graph, record, pool=None):
     memo[G_hash] = result
 
     return result
-
 
 def FP(T, r, v):
     res = []
@@ -112,9 +111,6 @@ def fac(n):
     return res
 
 def phi(cliquesize, i, fp, pmemo):
-    global total_phi
-
-    start = time.process_time()
     if i in pmemo.keys():
         return pmemo[i]
     
@@ -146,31 +142,32 @@ def C(G: nx.Graph, K: set):
     S = [K, set(G.nodes) - K]
 
     to = []
-    L = []
+    L = set()
     output = []
     
-    while len(S) != 0:
-        X = list(filter(lambda s: len(s) != 0, S))[0]
+    while S:
+        X = next(s for s in S if len(s) != 0)
+        if X is None:
+            break
+
         v = random.choice(list(X))
         to.append(v)
 
-        is_in_L = any((v in el) for el in L)
-        if (not is_in_L and (v not in K)):
-            L.append(X)
+        if not any(v in el for el in L) and (v not in K):
+            L.add(frozenset(X))
             # Output the undirected components of G[X].
-            components = nx.connected_components(G.subgraph(X))
-            subgraphs = [G.subgraph(component) for component in components]
+            subgraphs = [G.subgraph(component) for component in nx.connected_components(G.subgraph(X))]
 
-            output += subgraphs
+            output.extend(subgraphs)
         
         X.remove(v)
         S_new = []
+        neighbors_v = set(G.neighbors(v))
         for Si in S:
-            Nv = set(G.neighbors(v))
-            S_new.append(Si.intersection(Nv))
-            S_new.append(Si - Nv)
+            S_new.append(Si & neighbors_v)
+            S_new.append(Si - neighbors_v)
         
-        S = list(filter(lambda S_new_i: len(S_new_i) > 0, S_new))
+        S = [Si for Si in S_new if Si]
     
     return output
 

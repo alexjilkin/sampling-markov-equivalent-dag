@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from profiling import print_profiling, record
 import multiprocessing as mp
 
-vertices = [16, 32, 64, 256]
+vertices = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 
 def from_file():
     times = []
@@ -46,7 +46,7 @@ def from_file():
     ax.set_ylabel('Seconds')
 
     plt.title(graph_type)
-    # plt.show()
+    plt.show()
 
 if __name__ == '__main__':
     from_file()
