@@ -5,8 +5,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from profiling import print_profiling, record
 import multiprocessing as mp
+import cProfile
 
-vertices = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
+vertices = [16, 32, 64, 128, 256, 512]
 
 def from_file():
     times = []
@@ -50,3 +51,4 @@ def from_file():
 
 if __name__ == '__main__':
     from_file()
+ 

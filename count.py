@@ -3,6 +3,8 @@ import random
 import hashlib
 import time
 from functools import reduce
+from itertools import chain
+
 memo = {}
 
 def v_func(G, r, v, clique_tree, record):
@@ -32,10 +34,10 @@ def v_func(G, r, v, clique_tree, record):
 def count(G: nx.Graph, record, pool=None):
     start = time.time()
 
-    # hashable_graph = tuple(sorted(G.nodes.items()) + sorted(G.edges.items()))
-    # G_hash = hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+    hashable_graph = tuple(chain(G.nodes.items(), G.edges.items()))
+    G_hash = hashlib.sha256(str(hashable_graph).encode()).hexdigest()
 
-    G_hash = nx.weisfeiler_lehman_graph_hash(G)
+    # G_hash = nx.weisfeiler_lehman_graph_hash(G)
     record('hash', time.time() - start)
 
     try:
@@ -48,6 +50,7 @@ def count(G: nx.Graph, record, pool=None):
     G_subs = [G.subgraph(component) for component in nx.connected_components(G)]
     results = []
 
+    # For each subgraph, count the AMOs and return the product
     for G_sub in G_subs:
         result = 0
         start = time.time()
@@ -62,16 +65,17 @@ def count(G: nx.Graph, record, pool=None):
         record('clique_tree', time.time() - start)
 
         # Divide into subprocesses only at the root
-        if pool != None:
-            parallel_v_results = [pool.apply_async(v_func, (G_sub, r, v, clique_tree, record)) for v in maximal_cliques]
+        # if pool != None:
+        #     parallel_v_results = [pool.apply_async(v_func, (G_sub, r, v, clique_tree, record)) for v in maximal_cliques]
 
-            result += sum([r.get() for r in parallel_v_results])
-        else: 
-            for v in maximal_cliques:
-                result += v_func(G_sub, r, v, clique_tree, record)
+        #     result += sum([r.get() for r in parallel_v_results])
+        # else: 
+        for v in maximal_cliques:
+            result += v_func(G_sub, r, v, clique_tree, record)
 
         results.append(result)
 
+    # Product of each component
     result = reduce(lambda x, y: x*y, results)
     memo[G_hash] = result
 
