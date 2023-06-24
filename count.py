@@ -57,16 +57,15 @@ def count(G: nx.Graph, record, pool=None):
         clique_tree = nx.junction_tree(G_sub)
 
         # clique_tree = maximal_clique_tree(G)
-
-        r = list(clique_tree.nodes)[0]
         # maximal_cliques = list(map(lambda clique: tuple(sorted(clique)), nx.find_cliques(G)))
         maximal_cliques = get_maximal_cliques(clique_tree)
 
+        r = maximal_cliques[0]
         record('clique_tree', time.time() - start)
 
         # Divide into subprocesses only at the root
         # if pool != None:
-        #     parallel_v_results = [pool.apply_async(v_func, (G_sub, r, v, clique_tree, record)) for v in maximal_cliques]
+        #     parallel_v_results = [pool.apply_async(v_func, (G_sub, r, v, maximal_clique_tree, record)) for v in maximal_cliques]
 
         #     result += sum([r.get() for r in parallel_v_results])
         # else: 
