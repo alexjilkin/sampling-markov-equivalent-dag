@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+
 def read_graph_from_file(filename, random_weights=False):
 
     # file = open('./sample.gr', 'r')
@@ -38,7 +39,7 @@ def read_scores_from_file(filename):
         for j in range(1, j_count + 1):
             score = float(lines[j][0])
             
-            parents = frozenset(map(int, lines[j][1:]))
+            parents = frozenset(map(int, lines[j][2:]))
             scores[i][parents] = score
         
         lines = lines[j_count + 1:]
