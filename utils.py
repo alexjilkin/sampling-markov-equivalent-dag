@@ -18,3 +18,29 @@ def read_graph_from_file(filename, random_weights=False):
     G.add_edges_from(edges)
 
     return G
+
+def read_scores_from_file(filename):
+
+    # file = open('./sample.gr', 'r')
+    file = open(filename, 'r')
+    G = nx.Graph()
+    lines = [tuple(line.strip().split(" ")) for line in file.readlines()]
+    n = int(lines[0][0])
+
+    lines = lines[1:]
+    scores = {}
+
+    for i in range(1, n + 1):
+        v = lines[0][0]
+        j_count = int(lines[0][1])
+        scores[i] = {}
+
+        for j in range(1, j_count + 1):
+            score = float(lines[j][0])
+            
+            parents = frozenset(map(int, lines[j][1:]))
+            scores[i][parents] = score
+        
+        lines = lines[j_count + 1:]
+
+    return scores

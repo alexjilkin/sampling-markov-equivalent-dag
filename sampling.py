@@ -1,10 +1,10 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import read_graph_from_file
+from utils import read_scores_from_file
 
 def main():
-    G = read_graph_from_file('sample.gr', True)
+    G = read_scores_from_file('data/boston.jkl')
     d_G = nx.DiGraph(G)
     sample(d_G)
 
