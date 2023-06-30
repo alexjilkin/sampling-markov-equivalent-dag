@@ -1,5 +1,7 @@
 import networkx as nx
 import numpy as np
+import hashlib
+from itertools import chain
 
 def read_graph_from_file(filename, random_weights=False):
 
@@ -45,3 +47,23 @@ def read_scores_from_file(filename):
         lines = lines[j_count + 1:]
 
     return scores
+
+def random_dag(G: nx.DiGraph) -> nx.DiGraph:
+    new_G = G.copy()
+
+    nodes_list = list(new_G.nodes)
+    np.random.shuffle(nodes_list)
+    
+    for i in range(len(nodes_list) - 1):
+        a, b = nodes_list[i], nodes_list[i + 1]
+        new_G.add_edge(a, b)
+
+    try:
+        nx.find_cycle(new_G)
+        return random_dag(G)
+    except:
+        return new_G
+
+def hash_graph(G: nx.Graph) -> str:
+    hashable_graph = tuple(chain(G.nodes.items(), G.edges.items()))
+    return hashlib.sha256(str(hashable_graph).encode()).hexdigest()

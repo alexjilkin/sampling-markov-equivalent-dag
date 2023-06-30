@@ -5,9 +5,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from profiling import print_profiling, record
 import multiprocessing as mp
-import cProfile
+# import cProfile
 
-vertices = [16, 32, 64, 128, 256, 512]
+vertices = [64, 128, 256, 512, 1024, 2048]
 
 def from_file():
     times = []
@@ -15,8 +15,8 @@ def from_file():
     for vertex_count in vertices:
         start = time.time()
 
-        # file = open('./sample.gr', 'r')
-        file = open(f"./{graph_type}/n={vertex_count}.gr", 'r')
+        # file = open('./data/sample.gr', 'r')
+        file = open(f"./data/{graph_type}/n={vertex_count}.gr", 'r')
         G = nx.Graph()
         lines = [tuple(map(int, line.strip().split(" "))) for line in file.readlines()]
         nodes_count = lines[0][0]

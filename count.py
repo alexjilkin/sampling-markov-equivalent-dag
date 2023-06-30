@@ -1,41 +1,47 @@
 import networkx as nx
 import random
-import hashlib
 import time
 from functools import reduce
-from itertools import chain
+from operator import mul
+import numpy as np
+from utils import hash_graph
 
 memo = {}
+v_func_memo = {}
 
 def v_func(G, r, v, clique_tree, record):
-        # product of #AMOs for the subproblems
-        prod = 1
-        start = time.time()
-        subproblems = C(G, set(v))
-        
-        record('C_G', time.time() - start)
+    try:
+        res = v_func_memo[frozenset(v)]
+        return res
+    except KeyError:
+        pass
+    
+    start = time.time()
+    subproblems = C(G, set(v))
+    
+    record('C_G', time.time() - start)
 
-        results = []
+    results = [count(H, record) for H in subproblems]
 
-        results = [count(H, record) for H in subproblems]
+    prod = reduce(mul, results) if len(results) > 0 else 1
+    
+    start = time.time()
+    fp = FP(clique_tree, r, v)
 
-        for res in results:
-            prod *= res
-        
-        start = time.time()
-        fp = FP(clique_tree, r, v)
+    fp_lens = list(map(lambda a: len(a) , fp))
+    fp_lens.insert(0, 0)
 
-        fp_len = list(map(lambda a: len(a) , fp))
-        fp_len.insert(0, 0)
-        phi_res =  phi(len(set(v)), 0, fp_len, {})
-        # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
-        return phi_res * prod
+    # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
+    res = phi(len(set(v)), 0, fp_lens, {}) * prod
 
-def count(G: nx.Graph, record, pool=None):
+    v_func_memo[frozenset(v)] = res
+    
+    return res
+
+def count(G: nx.Graph, record=lambda x, y: None, pool=None):
     start = time.time()
 
-    hashable_graph = tuple(chain(G.nodes.items(), G.edges.items()))
-    G_hash = hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+    G_hash = hash_graph(G)
 
     # G_hash = nx.weisfeiler_lehman_graph_hash(G)
     record('hash', time.time() - start)
@@ -101,7 +107,7 @@ def FP(T, r, v):
 fmemo = {}
 
 def fac(n):
-    if n in fmemo.keys():
+    if n in fmemo:
         return fmemo[n]
     
     if n <= 0:
@@ -114,7 +120,7 @@ def fac(n):
     return res
 
 def phi(cliquesize, i, fp, pmemo):
-    if i in pmemo.keys():
+    if i in pmemo:
         return pmemo[i]
     
     sum = fac(cliquesize - fp[i])
