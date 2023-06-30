@@ -19,6 +19,29 @@ def propose_add(G: nx.DiGraph) -> nx.DiGraph:
         return propose_add(G)
     except:
         return new_G
+    
+def propose_remove(G: nx.DiGraph) -> nx.DiGraph:
+    new_G = G.copy()
+    edges = list(new_G.edges)
+    
+    edge = random.choice(edges)
+    new_G.remove_edge(*edge)
+
+    return new_G
+
+def propose_reverse(G: nx.DiGraph) -> nx.DiGraph:
+    new_G = G.copy()
+    edges = list(new_G.edges)
+    
+    edge = random.choice(edges)
+    new_G.remove_edge(*edge)
+    new_G.add_edge(*reversed(edge))
+    
+    try:
+        nx.find_cycle(new_G)
+        return propose_reverse(G)
+    except:
+        return new_G
 
 # Gets a UCCG
 def sample_markov_equivalent(G: nx.DiGraph):
@@ -33,29 +56,39 @@ def main():
     G.add_nodes_from(range(1, len(scores) + 1))
 
     G = random_dag(G)
-    # nx.draw_networkx(G)
-    # plt.show()
-    sample(G)
+
+    n = 200
+    steps = range(n)
+
+    plt.plot(steps, sample(G, n), label="Random")
 
     G = nx.DiGraph()
     G.add_nodes_from(range(1, len(scores) + 1))
-    sample(G)
+    plt.plot(steps, sample(G, n), label="Empty")
 
+    plt.legend()
     plt.show()
 
 # G is a UCCG
-def sample(G: nx.DiGraph):
+def sample(G: nx.DiGraph, n=200):
     A = get_edge_addition_count(G)
-    results = []
+    scores = []
     G_i = G
-    steps = range(200)
+    steps = range(n)
     for _ in steps: 
-        G_i_plus_1 = propose_add(G_i)
+        a = get_edge_addition_count(G_i)
+        r = len(list(G_i.edges))
+
+        # Choose uniformly from adding, removing or reversing an edge
+        propose_func = np.random.choice([propose_add, propose_reverse, propose_reverse], p=[a/(a+2*r), r/(a+2*r), r/(a+2*r)])
+
+        G_i_plus_1 = propose_func(G_i)
+
 
         A = np.min([1, R(G_i, G_i_plus_1)])
         if (np.random.uniform() < A):
             G_i = G_i_plus_1
-        results.append(score(G_i))
+        scores.append(score(G_i))
     
-    plt.plot(steps, results)
+    return scores
 main()
