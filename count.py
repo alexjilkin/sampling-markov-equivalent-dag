@@ -4,7 +4,7 @@ import time
 from functools import reduce
 from operator import mul
 import numpy as np
-from utils import hash_graph
+from utils import get_graph_hash
 
 memo = {}
 v_func_memo = {}
@@ -41,7 +41,7 @@ def v_func(G, r, v, clique_tree, record):
 def count(G: nx.Graph, record=lambda x, y: None, pool=None):
     start = time.time()
 
-    G_hash = hash_graph(G)
+    G_hash = get_graph_hash(G)
 
     # G_hash = nx.weisfeiler_lehman_graph_hash(G)
     record('hash', time.time() - start)

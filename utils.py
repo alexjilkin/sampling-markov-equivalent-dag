@@ -2,6 +2,7 @@ import networkx as nx
 import numpy as np
 import hashlib
 from itertools import chain
+import igraph as ig
 
 def read_graph_from_file(filename, random_weights=False):
 
@@ -64,6 +65,19 @@ def random_dag(G: nx.DiGraph) -> nx.DiGraph:
     except:
         return new_G
 
-def hash_graph(G: nx.Graph) -> str:
+def get_graph_hash(G: nx.Graph) -> str:
     hashable_graph = tuple(chain(G.nodes.items(), G.edges.items()))
     return hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+
+def get_graph_hash_ig(G: ig.Graph) -> str:
+    hashable_graph = tuple(chain(G.vs, G.es))
+    return hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+
+memo = {}
+
+def memo_by_graph(G: nx.DiGraph, key: str, value):
+    if (key not in memo):
+        memo[key] = {}
+    
+
+    
