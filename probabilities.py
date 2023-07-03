@@ -1,13 +1,11 @@
 import itertools
 import igraph as ig
-import matplotlib.pyplot as plt
 import numpy as np
 
 from utils import read_scores_from_file, get_graph_hash_ig
 from scipy.special import binom
 
 get_graph_hash = get_graph_hash_ig
-
 
 def N(G: ig.Graph):
     count = 0
@@ -31,7 +29,15 @@ def P(M: ig.Graph):
 
      
 def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
-    res = np.exp(score(M_i_plus_1) - score(M_i)) * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
+    proposed_score = score(M_i_plus_1)
+    current_score = score(M_i)
+
+    if (proposed_score == -np.inf):
+        left = 0
+    else:
+        left = proposed_score / current_score
+
+    res = left * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
     return res
 
 # edge_addition_memo = {}
@@ -60,52 +66,37 @@ def get_edge_addition_count(G: ig.Graph):
     # edge_addition_memo[graph_hash] = count
     return count
 
-# edge_reversal_memo = {}
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_reversal_count(G: ig.Graph):
-    # graph_hash = get_graph_hash(G)
-    # try:
-    #     return edge_reversal_memo[graph_hash]
-    # except KeyError:
-    #     pass
-
     count = 0
     M = G.copy()
 
     # Reversing edges
     for e in M.es:
-        a, b = e.source, e.target
-        M.reverse_edges([(a, b)])
+        # a, b = e.source, e.target
+        M.reverse_edges([e])
         if (M.is_dag()):        
             count += 1
-        M.reverse_edges([(b, a)])
+        M.reverse_edges([e])
 
-    # edge_reversal_memo[graph_hash] = count
     return count
 
 scores = read_scores_from_file('data/boston.jkl')
 
-# score_memo = {}
 def score(G: ig.Graph):
-    # graph_hash = get_graph_hash(G)
-    # try:
-    #     res = score_memo[graph_hash]
-    #     return res
-    # except KeyError:
-    #     pass
 
     score = 0
     
     def local_score(node):
         parents = frozenset(G.predecessors(node))
-        if (len(parents) == 0):
-            return scores[node.index + 1][frozenset({})]
+        # if (len(parents) == 0):
+        #     return scores[node.index + 1][frozenset({})]
         
         try:
             res = scores[node.index + 1][parents]
         except KeyError:
-            res = 0
+            res = -np.inf
         return res
         
     for node in G.vs:
@@ -113,10 +104,3 @@ def score(G: ig.Graph):
 
     # score_memo[graph_hash] = score
     return score
-
-def plot(G):
-    fig, ax = plt.subplots()
-    visual_style = {}
-    visual_style["vertex_label"] = G.vs.indices
-    ig.plot(G, target=ax, **visual_style)
-    plt.show()

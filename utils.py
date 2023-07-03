@@ -1,3 +1,5 @@
+import random
+from matplotlib import pyplot as plt
 import networkx as nx
 import numpy as np
 import hashlib
@@ -49,21 +51,21 @@ def read_scores_from_file(filename):
 
     return scores
 
-def random_dag(G: nx.DiGraph) -> nx.DiGraph:
+def random_dag(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
 
-    nodes_list = list(new_G.nodes)
-    np.random.shuffle(nodes_list)
+    for i in range(40):
+        vertices = list(new_G.vs)
     
-    for i in range(len(nodes_list) - 1):
-        a, b = nodes_list[i], nodes_list[i + 1]
-        new_G.add_edge(a, b)
+        a, b = random.sample(vertices, k=2)
+        if not new_G.are_connected(b, a):
+            new_G.add_edge(a, b)
 
-    try:
-        nx.find_cycle(new_G)
-        return random_dag(G)
-    except:
+    if(new_G.is_dag() and score(new_G) != -np.inf):
         return new_G
+    else:
+        return random_dag(G)
+        
 
 def get_graph_hash(G: nx.Graph) -> str:
     hashable_graph = tuple(chain(G.nodes.items(), G.edges.items()))
@@ -80,4 +82,9 @@ def memo_by_graph(G: nx.DiGraph, key: str, value):
         memo[key] = {}
     
 
-    
+def plot(G):
+    fig, ax = plt.subplots()
+    visual_style = {}
+    visual_style["vertex_label"] = G.vs.indices
+    ig.plot(G, target=ax, **visual_style)
+    plt.show()
