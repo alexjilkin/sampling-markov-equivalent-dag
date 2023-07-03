@@ -1,6 +1,6 @@
 import itertools
 import igraph as ig
-
+import matplotlib.pyplot as plt
 import numpy as np
 
 from utils import read_scores_from_file, get_graph_hash_ig
@@ -31,8 +31,8 @@ def P(M: ig.Graph):
 
      
 def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
-    return np.exp(score(M_i_plus_1) - score(M_i)) * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
-
+    res = np.exp(score(M_i_plus_1) - score(M_i)) * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
+    return res
 
 # edge_addition_memo = {}
 # Calculate how many edges can be added without creating a cycle
@@ -50,6 +50,7 @@ def get_edge_addition_count(G: ig.Graph):
     for a, b in  itertools.product(M.vs, repeat=2):
         if(a == b or M.are_connected(a, b) or M.are_connected(b, a)):
             continue
+        
         M.add_edge(a, b)
         if (M.is_dag()):
             count += 1
@@ -74,13 +75,11 @@ def get_edge_reversal_count(G: ig.Graph):
 
     # Reversing edges
     for e in M.es:
-        G.delete_edges([e])
-        G.add_edge(e.target, e.source)
-        if (G.is_dag()):
+        a, b = e.source, e.target
+        M.reverse_edges([(a, b)])
+        if (M.is_dag()):        
             count += 1
-
-        G.delete_edges([(e.target, e.source)])
-        G.add_edge(e.source, e.target)
+        M.reverse_edges([(b, a)])
 
     # edge_reversal_memo[graph_hash] = count
     return count
@@ -114,3 +113,10 @@ def score(G: ig.Graph):
 
     # score_memo[graph_hash] = score
     return score
+
+def plot(G):
+    fig, ax = plt.subplots()
+    visual_style = {}
+    visual_style["vertex_label"] = G.vs.indices
+    ig.plot(G, target=ax, **visual_style)
+    plt.show()
