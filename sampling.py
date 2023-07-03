@@ -5,7 +5,7 @@ from count import count
 import igraph as ig
 import math
 
-from probabilities import R, get_edge_addition_count, score
+from probabilities import R, get_edge_addition_count, get_edge_reversal_count, score
 import random
 
 def random_dag(G: ig.Graph) -> ig.Graph:
@@ -71,19 +71,20 @@ def sample_markov_equivalent(G: ig.Graph):
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 5000
+    n = 15000
     steps = range(n)
 
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
     G = random_dag(G)
-    # plt.plot(steps, sample(G, n), label="Random")
+    plt.plot(steps, sample(G, n), label="Random")
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
     # plt.hist(sample(G, n), bins=100, density=True)
     plt.plot(steps, sample(G, n), label="Empty")
 
     plt.legend()
+    plt.ylim([-23000, -19000])
     plt.show()
 
 # G is a UCCG
@@ -94,10 +95,12 @@ def sample(G: ig.Graph, n):
 
     for i in steps: 
         a = get_edge_addition_count(G_i)
-        r = len(list(G_i.es))
-
+        reverse = get_edge_reversal_count(G_i)
+        remove = len(list(G_i.es))
+        total = a+reverse+remove
+        
         # Choose uniformly from adding, removing or reversing an edge
-        proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/(a+2*r), r/(a+2*r), r/(a+2*r)])
+        proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
         # print(propose_func)
         G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
@@ -107,6 +110,8 @@ def sample(G: ig.Graph, n):
             G_i = G_i_plus_1
         
         scores.append(score(G_i))
+        # if(scores[-1] > -21400):
+        #     plot(G_i)
     
     return scores
 

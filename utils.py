@@ -1,4 +1,3 @@
-import random
 from matplotlib import pyplot as plt
 import networkx as nx
 import numpy as np
@@ -29,7 +28,6 @@ def read_scores_from_file(filename):
 
     # file = open('./sample.gr', 'r')
     file = open(filename, 'r')
-    G = nx.Graph()
     lines = [tuple(line.strip().split(" ")) for line in file.readlines()]
     n = int(lines[0][0])
 
@@ -51,22 +49,6 @@ def read_scores_from_file(filename):
 
     return scores
 
-def random_dag(G: ig.Graph) -> ig.Graph:
-    new_G = G.copy()
-
-    for i in range(40):
-        vertices = list(new_G.vs)
-    
-        a, b = random.sample(vertices, k=2)
-        if not new_G.are_connected(b, a):
-            new_G.add_edge(a, b)
-
-    if(new_G.is_dag() and score(new_G) != -np.inf):
-        return new_G
-    else:
-        return random_dag(G)
-        
-
 def get_graph_hash(G: nx.Graph) -> str:
     hashable_graph = tuple(chain(G.nodes.items(), G.edges.items()))
     return hashlib.sha256(str(hashable_graph).encode()).hexdigest()
@@ -80,11 +62,10 @@ memo = {}
 def memo_by_graph(G: nx.DiGraph, key: str, value):
     if (key not in memo):
         memo[key] = {}
-    
 
 def plot(G):
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     visual_style = {}
-    visual_style["vertex_label"] = G.vs.indices
+    visual_style["vertex_label"] = list(map(lambda x: x+1, G.vs.indices))
     ig.plot(G, target=ax, **visual_style)
     plt.show()

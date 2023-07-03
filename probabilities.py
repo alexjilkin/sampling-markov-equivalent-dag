@@ -8,15 +8,7 @@ from scipy.special import binom
 get_graph_hash = get_graph_hash_ig
 
 def N(G: ig.Graph):
-    count = 0
-    M = G
-
-    # Add edges
-    count += get_edge_addition_count(G)
-    count += get_edge_reversal_count(G)
-
-    # Removing edges
-    count += len(list(M.es))
+    count = get_edge_addition_count(G) + get_edge_reversal_count(G) + len(list(G.es))
 
     return count
 
@@ -85,7 +77,6 @@ def get_edge_reversal_count(G: ig.Graph):
 scores = read_scores_from_file('data/boston.jkl')
 
 def score(G: ig.Graph):
-
     score = 0
     
     def local_score(node):
