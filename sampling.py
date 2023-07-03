@@ -71,20 +71,22 @@ def sample_markov_equivalent(G: ig.Graph):
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 15000
+    n = 2000
     steps = range(n)
 
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
     G = random_dag(G)
-    plt.plot(steps, sample(G, n), label="Random")
+    samples = sample(G, n)
+    plt.plot(np.arange(len(samples)), samples , label="Random")
+
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
-    # plt.hist(sample(G, n), bins=100, density=True)
-    plt.plot(steps, sample(G, n), label="Empty")
+    samples = sample(G, n)
+    plt.plot(np.arange(len(samples)), samples , label="Empty")
 
     plt.legend()
-    plt.ylim([-23000, -19000])
+    plt.ylim([-22000, -19500])
     plt.show()
 
 # G is a UCCG
@@ -115,10 +117,4 @@ def sample(G: ig.Graph, n):
     
     return scores
 
-# profiler = cProfile.Profile()
-# profiler.enable()
 main()
-# profiler.disable()
-
-# profiler.dump_stats('sampling_profile_results.prof')
-# snakeviz.stats('sampling_profile_results.prof')
