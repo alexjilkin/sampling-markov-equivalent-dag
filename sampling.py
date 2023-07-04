@@ -3,7 +3,6 @@ import numpy as np
 from utils import plot, read_scores_from_file
 from count import count
 import igraph as ig
-import math
 
 from probabilities import R, get_edge_addition_count, get_edge_reversal_count, score
 import random
@@ -11,7 +10,7 @@ import random
 def random_dag(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
 
-    for i in range(10):
+    for i in range(25):
         vertices = list(new_G.vs)
     
         a, b = random.sample(vertices, k=2)
@@ -71,19 +70,19 @@ def sample_markov_equivalent(G: ig.Graph):
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 2000
-    steps = range(n)
+    n = 200000
 
-    G = ig.Graph(directed=True)
-    G.add_vertices(len(scores))
-    G = random_dag(G)
-    samples = sample(G, n)
-    plt.plot(np.arange(len(samples)), samples , label="Random")
+    for i in range(10):
+        G = ig.Graph(directed=True)
+        G.add_vertices(len(scores))
+        G = random_dag(G)
+        samples = sample(G, n)
+        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
 
-    G = ig.Graph(directed=True)
-    G.add_vertices(len(scores))
-    samples = sample(G, n)
-    plt.plot(np.arange(len(samples)), samples , label="Empty")
+    # G = ig.Graph(directed=True)
+    # G.add_vertices(len(scores))
+    # samples = sample(G, n)
+    # plt.plot(np.arange(len(samples)), samples , label="Empty")
 
     plt.legend()
     plt.ylim([-22000, -19500])
