@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from meeks import CPDAG
 from utils import plot, read_scores_from_file
 from count import count
 import igraph as ig
@@ -14,7 +15,7 @@ def random_dag(G: ig.Graph) -> ig.Graph:
         vertices = list(new_G.vs)
     
         a, b = random.sample(vertices, k=2)
-        if not new_G.are_connected(b, a):
+        if not new_G.are_connected(b, a) and not new_G.are_connected(a, b):
             new_G.add_edge(a, b)
 
     if(new_G.is_dag() and score(new_G) != -np.inf):
@@ -39,6 +40,22 @@ def propose_add(G: ig.Graph) -> ig.Graph:
     
     return propose_add(G)        
       
+def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
+    plot(G)
+    essential_g = CPDAG(G)
+    plot(essential_g)
+    
+    undirected_g = ig.Graph()
+    undirected_g.add_vertices(len(essential_g.vs))
+
+    for e in essential_g.es:
+        if essential_g.are_connected(e.target, e.source):
+            undirected_g.add_edge(e.source, e.target)
+            essential_g.delete_edges([e])
+            
+
+    plot(undirected_g)
+    
 def propose_remove(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
     edges = list(new_G.es)
@@ -70,19 +87,20 @@ def sample_markov_equivalent(G: ig.Graph):
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 200000
+    n = 2000
 
-    for i in range(10):
+    # for i in range(5):
+    #     G = ig.Graph(directed=True)
+    #     G.add_vertices(len(scores))
+    #     G = random_dag(G)
+    #     samples = sample(G, n)
+    #     plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
+
+    for i in range(1):
         G = ig.Graph(directed=True)
         G.add_vertices(len(scores))
-        G = random_dag(G)
         samples = sample(G, n)
-        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
-
-    # G = ig.Graph(directed=True)
-    # G.add_vertices(len(scores))
-    # samples = sample(G, n)
-    # plt.plot(np.arange(len(samples)), samples , label="Empty")
+        plt.plot(np.arange(len(samples)), samples , label=f"Empty-{i+1}")
 
     plt.legend()
     plt.ylim([-22000, -19500])
@@ -103,6 +121,9 @@ def sample(G: ig.Graph, n):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
+        if i == 1000:
+            propose_markov_equivalent(G_i)
+
         # print(propose_func)
         G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
 
