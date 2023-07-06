@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from meeks import CPDAG
 from utils import plot, read_scores_from_file
-from count import count
+from count import count, get_maximal_cliques, v_func
 import igraph as ig
+import networkx as nx
 
 from probabilities import R, get_edge_addition_count, get_edge_reversal_count, score
 import random
@@ -39,22 +40,13 @@ def propose_add(G: ig.Graph) -> ig.Graph:
         return new_G
     
     return propose_add(G)        
-      
+    
 def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
-    plot(G)
+    # plot(G)
     essential_g = CPDAG(G)
     plot(essential_g)
-    
-    undirected_g = ig.Graph()
-    undirected_g.add_vertices(len(essential_g.vs))
 
-    for e in essential_g.es:
-        if essential_g.are_connected(e.target, e.source):
-            undirected_g.add_edge(e.source, e.target)
-            essential_g.delete_edges([e])
-            
-
-    plot(undirected_g)
+    sample_markov_equivalent(essential_g)
     
 def propose_remove(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
@@ -78,29 +70,24 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
     return propose_reverse(G)
 
 # Gets a UCCG
-def sample_markov_equivalent(G: ig.Graph):
-    M = G.copy().to_undirected()
-    
-    AMOs = count(M, lambda x, y: None)
-    print(AMOs)
     
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 2000
+    n = 10000
 
-    # for i in range(5):
-    #     G = ig.Graph(directed=True)
-    #     G.add_vertices(len(scores))
-    #     G = random_dag(G)
-    #     samples = sample(G, n)
-    #     plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
-
-    for i in range(1):
+    for i in range(2):
         G = ig.Graph(directed=True)
         G.add_vertices(len(scores))
+        G = random_dag(G)
         samples = sample(G, n)
-        plt.plot(np.arange(len(samples)), samples , label=f"Empty-{i+1}")
+        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
+
+    # for i in range(1):
+    #     G = ig.Graph(directed=True)
+    #     G.add_vertices(len(scores))
+    #     samples = sample(G, n)
+    #     plt.plot(np.arange(len(samples)), samples , label=f"Empty-{i+1}")
 
     plt.legend()
     plt.ylim([-22000, -19500])
@@ -121,7 +108,7 @@ def sample(G: ig.Graph, n):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
-        if i == 1000:
+        if i == n - 1:
             propose_markov_equivalent(G_i)
 
         # print(propose_func)
@@ -136,5 +123,33 @@ def sample(G: ig.Graph, n):
         #     plot(G_i)
     
     return scores
+
+
+# G is a the essential graph
+def sample_markov_equivalent(G: ig.Graph):
+    # Create a networkx graph to be used with count()
+    U = nx.Graph()
+
+    for e in G.es:
+        U.add_edge(e.source + 1, e.target + 1)
+
+    # For each subgraph, count the AMOs and return the product
+    for UCCG in [U.subgraph(component) for component in nx.connected_components(U)]:
+
+        # pre-process
+        AMO = count(UCCG, lambda x, y: None)
+
+        clique_tree = nx.junction_tree(UCCG)
+        maximal_cliques = get_maximal_cliques(clique_tree)
+        r = maximal_cliques[0]
+
+        p = list(map(lambda v: v_func(UCCG, r, v, clique_tree, lambda x,y: None) / AMO, maximal_cliques))
+        
+        # Maximal clique drawn with probability proportional to v_func
+        v = maximal_cliques[np.random.choice(np.arange(0, len(p)), p=p)]
+
+        print(v)
+        print(p)
+        print(AMO)
 
 main()
