@@ -66,6 +66,6 @@ def memo_by_graph(G: nx.DiGraph, key: str, value):
 def plot(G):
     _, ax = plt.subplots()
     visual_style = {}
-    visual_style["vertex_label"] = list(map(lambda x: x+1, G.vs.indices))
+    visual_style["vertex_label"] = list(map(lambda x: x, G.vs.indices))
     ig.plot(G, target=ax, **visual_style)
     plt.show()

@@ -17,15 +17,15 @@ def v_func(G, r, v, clique_tree, record):
         pass
     
     start = time.time()
-    subproblems = C(G, set(v))
+    K = set(v)
+    subproblems = C(G, K)
     
-    record('C_G', time.time() - start)
+    # record('C_G', time.time() - start)
 
     results = [count(H, record) for H in subproblems]
 
     prod = reduce(mul, results) if len(results) > 0 else 1
     
-    start = time.time()
     fp = FP(clique_tree, r, v)
 
     fp_lens = list(map(lambda a: len(a) , fp))

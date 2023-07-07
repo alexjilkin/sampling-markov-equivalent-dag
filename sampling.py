@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from meeks import CPDAG
 from utils import plot, read_scores_from_file
-from count import count, get_maximal_cliques, v_func
+from count import FP, count, get_maximal_cliques, v_func, C
 import igraph as ig
 import networkx as nx
 
@@ -12,7 +12,7 @@ import random
 def random_dag(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
 
-    for i in range(25):
+    for i in range(23):
         vertices = list(new_G.vs)
     
         a, b = random.sample(vertices, k=2)
@@ -44,9 +44,38 @@ def propose_add(G: ig.Graph) -> ig.Graph:
 def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
     # plot(G)
     essential_g = CPDAG(G)
-    plot(essential_g)
 
-    sample_markov_equivalent(essential_g)
+    # Create a networkx graph to be used with count()
+    U = nx.Graph()
+
+    for e in essential_g.es:
+        U.add_edge(e.source, e.target)
+
+    to = sample_markov_equivalent(U)
+
+    equivalent_G = ig.Graph(directed=True)
+    equivalent_G.add_vertices(len(G.vs))
+    
+    # Direct based on to
+    for v in to:
+        ids = G.incident(v, mode="all")
+       
+        for id in ids:
+            e = G.es[id]
+            if not (e.source in to and e.target in to):
+                continue
+            if (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
+                continue
+            if (to.index(e.source) < to.index(e.target)):
+                equivalent_G.add_edge(e.source, e.target)
+            else:
+                equivalent_G.add_edge(e.target, e.source)
+
+    for e in G.es:
+        if not (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
+            equivalent_G.add_edge(e.source, e.target)
+
+    return equivalent_G
     
 def propose_remove(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
@@ -74,7 +103,7 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 10000
+    n = 20000
 
     for i in range(2):
         G = ig.Graph(directed=True)
@@ -108,11 +137,14 @@ def sample(G: ig.Graph, n):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
-        if i == n - 1:
-            propose_markov_equivalent(G_i)
-
-        # print(propose_func)
-        G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
+        if i % 7000 == 1:
+            G_i_plus_1 = propose_markov_equivalent(G_i)
+            print(score(G_i))
+            print(score(G_i_plus_1))
+            
+        else:
+             # print(propose_func)
+            G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
 
         A = np.min([1, R(G_i, G_i_plus_1)])
         if (np.random.uniform() < A):
@@ -126,13 +158,7 @@ def sample(G: ig.Graph, n):
 
 
 # G is a the essential graph
-def sample_markov_equivalent(G: ig.Graph):
-    # Create a networkx graph to be used with count()
-    U = nx.Graph()
-
-    for e in G.es:
-        U.add_edge(e.source + 1, e.target + 1)
-
+def sample_markov_equivalent(U: nx.Graph):
     # For each subgraph, count the AMOs and return the product
     for UCCG in [U.subgraph(component) for component in nx.connected_components(U)]:
 
@@ -148,8 +174,25 @@ def sample_markov_equivalent(G: ig.Graph):
         # Maximal clique drawn with probability proportional to v_func
         v = maximal_cliques[np.random.choice(np.arange(0, len(p)), p=p)]
 
-        print(v)
-        print(p)
-        print(AMO)
+        K = set(v)
+        
+        to = list(K)
+        # uniformly drawn permutation of ι(v) without prefix in FP(v, T )
+        is_good = False
+        while not is_good:
+            random.shuffle(to)
+
+            is_good = True
+            for fp in FP(clique_tree, r, v):
+                if (np.array_equal(to[:len(fp)], fp)):
+                    is_good = False
+        
+        for H in C(UCCG, K):
+            to += sample_markov_equivalent(H)
+
+        # print(to)
+        # print(v)
+        # print(p)
+        return to
 
 main()
