@@ -69,7 +69,8 @@ def score(G: ig.Graph):
     score = 0
     
     def get_local_score(node):
-        parents = frozenset(G.predecessors(node))
+        # Adjust from 0 to 1 counting system
+        parents = frozenset(map(lambda x: x+1, G.predecessors(node)))
         # if (len(parents) == 0):
         #     return scores[node.index + 1][frozenset({})]
         

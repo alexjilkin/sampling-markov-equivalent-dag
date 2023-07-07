@@ -42,7 +42,6 @@ def propose_add(G: ig.Graph) -> ig.Graph:
     return propose_add(G)        
     
 def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
-    # plot(G)
     essential_g = CPDAG(G)
 
     # Create a networkx graph to be used with count()
@@ -53,6 +52,9 @@ def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
 
     to = sample_markov_equivalent(U)
 
+    if not to:
+        return G
+     
     equivalent_G = ig.Graph(directed=True)
     equivalent_G.add_vertices(len(G.vs))
     
@@ -103,14 +105,20 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 20000
+    n = 10000
 
-    for i in range(2):
+    for i in range(5):
         G = ig.Graph(directed=True)
         G.add_vertices(len(scores))
         G = random_dag(G)
         samples = sample(G, n)
         plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
+
+    G = ig.Graph(directed=True)
+    G.add_vertices(len(scores))
+    G = random_dag(G)
+    samples = sample(G, n, True)
+    plt.plot(np.arange(len(samples)), samples , label=f"Random-markov")
 
     # for i in range(1):
     #     G = ig.Graph(directed=True)
@@ -123,7 +131,7 @@ def main():
     plt.show()
 
 # G is a UCCG
-def sample(G: ig.Graph, n):
+def sample(G: ig.Graph, n, markov_equivalent = False):
     scores = []
     G_i = G
     steps = range(n)
@@ -137,13 +145,19 @@ def sample(G: ig.Graph, n):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
-        if i % 7000 == 1:
+        if i % 500 == 0 and markov_equivalent:
             G_i_plus_1 = propose_markov_equivalent(G_i)
-            print(score(G_i))
-            print(score(G_i_plus_1))
-            
+    
+            a = set(map(lambda e: (e.source, e.target), G_i.es))
+            b = set(map(lambda e: (e.source, e.target), G_i_plus_1.es))  
+            print(score(G_i), score(G_i_plus_1), a - b)
+            A = np.min([1, R(G_i, G_i_plus_1)])
+
+            if (len(a-b) > 0 and np.random.uniform() < A):
+                print("sampled equivalent")
+                G_i = G_i_plus_1
+                continue
         else:
-             # print(propose_func)
             G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
 
         A = np.min([1, R(G_i, G_i_plus_1)])
@@ -160,10 +174,10 @@ def sample(G: ig.Graph, n):
 # G is a the essential graph
 def sample_markov_equivalent(U: nx.Graph):
     # For each subgraph, count the AMOs and return the product
+    # TODO: Remember to handle multiple UCCG
     for UCCG in [U.subgraph(component) for component in nx.connected_components(U)]:
-
         # pre-process
-        AMO = count(UCCG, lambda x, y: None)
+        AMO = count(UCCG)
 
         clique_tree = nx.junction_tree(UCCG)
         maximal_cliques = get_maximal_cliques(clique_tree)

@@ -61,5 +61,6 @@ def CPDAG(D: ig.Graph):
     # for i in range(20):
         G_i = G_i_plus_1.copy()     
         G_i_plus_1, G_lines = undirect_not_strongly_protected(G_i, G_lines)
-        
+    
+    # plot(G_lines)
     return G_lines
