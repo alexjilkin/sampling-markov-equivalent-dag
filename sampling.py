@@ -57,6 +57,7 @@ def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
     
     equivalent_G = ig.Graph(directed=True)
     equivalent_G.add_vertices(len(G.vs))
+
     for to in tos:
         # Direct based on to
         for v in to:
@@ -103,7 +104,7 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 20000
+    n = 30000
 
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
@@ -137,22 +138,22 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
-        if i!= 0 and i % 50 == 0 and markov_equivalent:
+        if i != 0 and i % 200 == 0 and markov_equivalent:
             G_i_plus_1 = propose_markov_equivalent(G_i)
     
             a = set(map(lambda e: (e.source, e.target), G_i.es))
             b = set(map(lambda e: (e.source, e.target), G_i_plus_1.es))
-            if(G_i_plus_1.is_dag()):
-                print("markov equiv DAG")
-            # print(score(G_i), score(G_i_plus_1), a - b)
+
+            print(score(G_i), score(G_i_plus_1), a - b)
 
         else:
             G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
-            if(not G_i_plus_1.is_dag()):
-                print("crap")
+
+        if(not G_i_plus_1.is_dag()):
+            print("not DAG = death")
 
         A = np.min([1, R(G_i, G_i_plus_1)])
-        if (np.random.uniform() < A and G_i_plus_1.is_dag()):
+        if (np.random.uniform() < A):
             G_i = G_i_plus_1
         
         scores.append(score(G_i))
