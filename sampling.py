@@ -12,7 +12,7 @@ import random
 def random_dag(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
 
-    for i in range(23):
+    for i in range(25):
         vertices = list(new_G.vs)
     
         a, b = random.sample(vertices, k=2)
@@ -99,13 +99,11 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
         return new_G
         
     return propose_reverse(G)
-
-# Gets a UCCG
     
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 10000
+    n = 20000
 
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
@@ -139,30 +137,33 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
-        if i!= 0 and i % 500 == 0 and markov_equivalent:
+        if i!= 0 and i % 50 == 0 and markov_equivalent:
             G_i_plus_1 = propose_markov_equivalent(G_i)
     
             a = set(map(lambda e: (e.source, e.target), G_i.es))
-            b = set(map(lambda e: (e.source, e.target), G_i_plus_1.es))  
+            b = set(map(lambda e: (e.source, e.target), G_i_plus_1.es))
+            if(G_i_plus_1.is_dag()):
+                print("markov equiv DAG")
             # print(score(G_i), score(G_i_plus_1), a - b)
 
         else:
             G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
+            if(not G_i_plus_1.is_dag()):
+                print("crap")
 
         A = np.min([1, R(G_i, G_i_plus_1)])
-        if (np.random.uniform() < A):
+        if (np.random.uniform() < A and G_i_plus_1.is_dag()):
             G_i = G_i_plus_1
         
         scores.append(score(G_i))
         
     return scores, G_i
 
-
 # G is a the essential graph
 def sample_markov_equivalent(U: nx.Graph):
     # For each subgraph, count the AMOs and return the product
 
-    def sub_sample_markov_equivalent(UCCG):
+    def recursive_func(UCCG):
         # pre-process
         AMO = count(UCCG)
 
@@ -189,11 +190,11 @@ def sample_markov_equivalent(U: nx.Graph):
                     is_good = False
         
         for H in C(UCCG, K):
-            to += sub_sample_markov_equivalent(H)
+            to += recursive_func(H)
         return to
     
     UCCGs = [U.subgraph(component) for component in nx.connected_components(U)]
-    tos = list(map(lambda UCCG: sub_sample_markov_equivalent(UCCG),  UCCGs))
+    tos = list(map(lambda UCCG: recursive_func(UCCG),  UCCGs))
 
     return tos
 main()
