@@ -9,7 +9,7 @@ from utils import get_graph_hash
 memo = {}
 v_func_memo = {}
 
-def v_func(G, r, v, clique_tree, record):
+def v_func(G, r, v, clique_tree, record=lambda x, y: None):
     try:
         res = v_func_memo[frozenset(v)]
         return res

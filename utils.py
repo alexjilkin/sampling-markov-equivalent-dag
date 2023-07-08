@@ -63,7 +63,7 @@ def memo_by_graph(G: nx.DiGraph, key: str, value):
     if (key not in memo):
         memo[key] = {}
 
-def plot(G):
+def plot(G, title=""):
     _, ax = plt.subplots()
     visual_style = {}
     visual_style["vertex_label"] = list(map(lambda x: x, G.vs.indices))

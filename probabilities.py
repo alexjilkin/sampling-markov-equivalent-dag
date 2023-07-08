@@ -29,10 +29,8 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
     return res  
 
 # Calculate how many edges can be added without creating a cycle
-def get_edge_addition_count(G: ig.Graph):
-
+def get_edge_addition_count(M: ig.Graph):
     count = 0
-    M = G.copy()
     
     # Try adding edges
     for a, b in  itertools.product(M.vs, repeat=2):

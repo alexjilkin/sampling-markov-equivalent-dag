@@ -26,7 +26,7 @@ def random_dag(G: ig.Graph) -> ig.Graph:
         
 
 def propose_add(G: ig.Graph) -> ig.Graph:
-    
+
     new_G = G.copy()
     vertices = list(new_G.vs)
     
@@ -50,28 +50,28 @@ def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
     for e in essential_g.es:
         U.add_edge(e.source, e.target)
 
-    to = sample_markov_equivalent(U)
+    tos = sample_markov_equivalent(U)
 
-    if not to:
+    if len(tos) == 0:
         return G
-     
+    
     equivalent_G = ig.Graph(directed=True)
     equivalent_G.add_vertices(len(G.vs))
-    
-    # Direct based on to
-    for v in to:
-        ids = G.incident(v, mode="all")
-       
-        for id in ids:
-            e = G.es[id]
-            if not (e.source in to and e.target in to):
-                continue
-            if (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
-                continue
-            if (to.index(e.source) < to.index(e.target)):
-                equivalent_G.add_edge(e.source, e.target)
-            else:
-                equivalent_G.add_edge(e.target, e.source)
+    for to in tos:
+        # Direct based on to
+        for v in to:
+            ids = G.incident(v, mode="all")
+        
+            for id in ids:
+                e = G.es[id]
+                if not (e.source in to and e.target in to):
+                    continue
+                if (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
+                    continue
+                if (to.index(e.source) < to.index(e.target)):
+                    equivalent_G.add_edge(e.source, e.target)
+                else:
+                    equivalent_G.add_edge(e.target, e.source)
 
     for e in G.es:
         if not (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
@@ -107,33 +107,27 @@ def main():
 
     n = 10000
 
-    for i in range(5):
-        G = ig.Graph(directed=True)
-        G.add_vertices(len(scores))
-        G = random_dag(G)
-        samples = sample(G, n)
-        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
-
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
     G = random_dag(G)
-    samples = sample(G, n, True)
-    plt.plot(np.arange(len(samples)), samples , label=f"Random-markov")
 
-    # for i in range(1):
-    #     G = ig.Graph(directed=True)
-    #     G.add_vertices(len(scores))
-    #     samples = sample(G, n)
-    #     plt.plot(np.arange(len(samples)), samples , label=f"Empty-{i+1}")
+    for i in range(2):
+        samples, G_no_markov = sample(G, n)
+        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
+
+        samples, G_markov = sample(G, n, True)
+        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}-markov", linestyle='dashed')
 
     plt.legend()
     plt.ylim([-22000, -19500])
     plt.show()
+    # plot(G_no_markov)
+    # plot(G_markov)
 
 # G is a UCCG
 def sample(G: ig.Graph, n, markov_equivalent = False):
     scores = []
-    G_i = G
+    G_i = G.copy()
     steps = range(n)
 
     for i in steps: 
@@ -145,18 +139,13 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
-        if i % 500 == 0 and markov_equivalent:
+        if i!= 0 and i % 500 == 0 and markov_equivalent:
             G_i_plus_1 = propose_markov_equivalent(G_i)
     
             a = set(map(lambda e: (e.source, e.target), G_i.es))
             b = set(map(lambda e: (e.source, e.target), G_i_plus_1.es))  
-            print(score(G_i), score(G_i_plus_1), a - b)
-            A = np.min([1, R(G_i, G_i_plus_1)])
+            # print(score(G_i), score(G_i_plus_1), a - b)
 
-            if (len(a-b) > 0 and np.random.uniform() < A):
-                print("sampled equivalent")
-                G_i = G_i_plus_1
-                continue
         else:
             G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
 
@@ -165,17 +154,15 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
             G_i = G_i_plus_1
         
         scores.append(score(G_i))
-        # if(scores[-1] > -21400):
-        #     plot(G_i)
-    
-    return scores
+        
+    return scores, G_i
 
 
 # G is a the essential graph
 def sample_markov_equivalent(U: nx.Graph):
     # For each subgraph, count the AMOs and return the product
-    # TODO: Remember to handle multiple UCCG
-    for UCCG in [U.subgraph(component) for component in nx.connected_components(U)]:
+
+    def sub_sample_markov_equivalent(UCCG):
         # pre-process
         AMO = count(UCCG)
 
@@ -183,14 +170,14 @@ def sample_markov_equivalent(U: nx.Graph):
         maximal_cliques = get_maximal_cliques(clique_tree)
         r = maximal_cliques[0]
 
-        p = list(map(lambda v: v_func(UCCG, r, v, clique_tree, lambda x,y: None) / AMO, maximal_cliques))
+        p = list(map(lambda v: v_func(UCCG, r, v, clique_tree) / AMO, maximal_cliques))
         
         # Maximal clique drawn with probability proportional to v_func
         v = maximal_cliques[np.random.choice(np.arange(0, len(p)), p=p)]
 
         K = set(v)
-        
         to = list(K)
+
         # uniformly drawn permutation of ι(v) without prefix in FP(v, T )
         is_good = False
         while not is_good:
@@ -202,11 +189,11 @@ def sample_markov_equivalent(U: nx.Graph):
                     is_good = False
         
         for H in C(UCCG, K):
-            to += sample_markov_equivalent(H)
-
-        # print(to)
-        # print(v)
-        # print(p)
+            to += sub_sample_markov_equivalent(H)
         return to
+    
+    UCCGs = [U.subgraph(component) for component in nx.connected_components(U)]
+    tos = list(map(lambda UCCG: sub_sample_markov_equivalent(UCCG),  UCCGs))
 
+    return tos
 main()
