@@ -1,7 +1,8 @@
+import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 from meeks import CPDAG
-from utils import plot, read_scores_from_file
+from utils import get_es_diff, plot, read_scores_from_file
 from count import FP, count, get_maximal_cliques, v_func, C
 import igraph as ig
 import networkx as nx
@@ -78,6 +79,10 @@ def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
         if not (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
             equivalent_G.add_edge(e.source, e.target)
 
+    # If it is the same
+    # if (len(get_es_diff(G, equivalent_G)) == 0):
+    #     return propose_markov_equivalent(G)
+    
     return equivalent_G
     
 def propose_remove(G: ig.Graph) -> ig.Graph:
@@ -104,7 +109,7 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 30000
+    n = 4000
 
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
@@ -120,6 +125,8 @@ def main():
     plt.legend()
     plt.ylim([-22000, -19500])
     plt.show()
+
+    # print(score(G_no_markov), score(G_markov), set(map(lambda e: (e.source, e.target), G_no_markov.es)) - set(map(lambda e: (e.source, e.target), G_markov.es)))
     # plot(G_no_markov)
     # plot(G_markov)
 
@@ -138,19 +145,13 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
         
-        if i != 0 and i % 200 == 0 and markov_equivalent:
+        if np.random.uniform() < 0.01 and markov_equivalent:
             G_i_plus_1 = propose_markov_equivalent(G_i)
-    
-            a = set(map(lambda e: (e.source, e.target), G_i.es))
-            b = set(map(lambda e: (e.source, e.target), G_i_plus_1.es))
 
-            print(score(G_i), score(G_i_plus_1), a - b)
+            print(score(G_i), score(G_i_plus_1), get_es_diff(G_i, G_i_plus_1))
 
         else:
             G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
-
-        if(not G_i_plus_1.is_dag()):
-            print("not DAG = death")
 
         A = np.min([1, R(G_i, G_i_plus_1)])
         if (np.random.uniform() < A):
@@ -175,20 +176,22 @@ def sample_markov_equivalent(U: nx.Graph):
         p = list(map(lambda v: v_func(UCCG, r, v, clique_tree) / AMO, maximal_cliques))
         
         # Maximal clique drawn with probability proportional to v_func
-        v = maximal_cliques[np.random.choice(np.arange(0, len(p)), p=p)]
+        v = maximal_cliques[np.random.choice(np.arange(len(p)), p=p)]
 
         K = set(v)
         to = list(K)
 
+        permutations = list(itertools.permutations(to))
+    
         # uniformly drawn permutation of ι(v) without prefix in FP(v, T )
-        is_good = False
-        while not is_good:
-            random.shuffle(to)
+        is_good_to = False
+        while not is_good_to:
+            to = random.choice(permutations)
+            is_good_to = True
 
-            is_good = True
             for fp in FP(clique_tree, r, v):
                 if (np.array_equal(to[:len(fp)], fp)):
-                    is_good = False
+                    is_good_to = False
         
         for H in C(UCCG, K):
             to += recursive_func(H)

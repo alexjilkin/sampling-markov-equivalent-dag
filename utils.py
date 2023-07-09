@@ -69,3 +69,6 @@ def plot(G, title=""):
     visual_style["vertex_label"] = list(map(lambda x: x, G.vs.indices))
     ig.plot(G, target=ax, **visual_style)
     plt.show()
+
+def get_es_diff(G1: ig.Graph, G2: ig.Graph):
+    return set(map(lambda e: (e.source, e.target), G1.es)) - set(map(lambda e: (e.source, e.target), G2.es))
