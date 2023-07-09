@@ -78,10 +78,6 @@ def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
     for e in G.es:
         if not (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
             equivalent_G.add_edge(e.source, e.target)
-
-    # If it is the same
-    # if (len(get_es_diff(G, equivalent_G)) == 0):
-    #     return propose_markov_equivalent(G)
     
     return equivalent_G
     
@@ -109,13 +105,15 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
 def main():
     scores = read_scores_from_file('data/boston.jkl')
 
-    n = 4000
-
+    n = 1000
     G = ig.Graph(directed=True)
     G.add_vertices(len(scores))
     G = random_dag(G)
 
-    for i in range(2):
+    scores = []
+    markov_scores = []
+
+    for i in range(10):
         samples, G_no_markov = sample(G, n)
         plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
 
@@ -125,10 +123,6 @@ def main():
     plt.legend()
     plt.ylim([-22000, -19500])
     plt.show()
-
-    # print(score(G_no_markov), score(G_markov), set(map(lambda e: (e.source, e.target), G_no_markov.es)) - set(map(lambda e: (e.source, e.target), G_markov.es)))
-    # plot(G_no_markov)
-    # plot(G_markov)
 
 # G is a UCCG
 def sample(G: ig.Graph, n, markov_equivalent = False):
@@ -147,9 +141,7 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
         
         if np.random.uniform() < 0.01 and markov_equivalent:
             G_i_plus_1 = propose_markov_equivalent(G_i)
-
             print(score(G_i), score(G_i_plus_1), get_es_diff(G_i, G_i_plus_1))
-
         else:
             G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
 
@@ -163,10 +155,7 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
 
 # G is a the essential graph
 def sample_markov_equivalent(U: nx.Graph):
-    # For each subgraph, count the AMOs and return the product
-
-    def recursive_func(UCCG):
-        # pre-process
+    def get_topological_order(UCCG: nx.Graph):
         AMO = count(UCCG)
 
         clique_tree = nx.junction_tree(UCCG)
@@ -194,11 +183,15 @@ def sample_markov_equivalent(U: nx.Graph):
                     is_good_to = False
         
         for H in C(UCCG, K):
-            to += recursive_func(H)
+            to += get_topological_order(H)
+
         return to
     
+    # pre-process
+    count(U)
+
     UCCGs = [U.subgraph(component) for component in nx.connected_components(U)]
-    tos = list(map(lambda UCCG: recursive_func(UCCG),  UCCGs))
+    tos = list(map(lambda UCCG: get_topological_order(UCCG),  UCCGs))
 
     return tos
 main()

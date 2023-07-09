@@ -16,14 +16,10 @@ def v_func(G, r, v, clique_tree, record=lambda x, y: None):
     except KeyError:
         pass
     
-    start = time.time()
     K = set(v)
     subproblems = C(G, K)
     
-    # record('C_G', time.time() - start)
-
     results = [count(H, record) for H in subproblems]
-
     prod = reduce(mul, results) if len(results) > 0 else 1
     
     fp = FP(clique_tree, r, v)
@@ -31,7 +27,6 @@ def v_func(G, r, v, clique_tree, record=lambda x, y: None):
     fp_lens = list(map(lambda a: len(a) , fp))
     fp_lens.insert(0, 0)
 
-    # print(f"{v}: phi={phi_res}, fp={fp}, prod={prod}")
     res = phi(len(set(v)), 0, fp_lens, {}) * prod
 
     v_func_memo[frozenset(v)] = res
