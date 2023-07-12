@@ -1,3 +1,4 @@
+import itertools
 import igraph as ig
 import numpy as np
 
@@ -24,7 +25,7 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
 
     # Prevent overlow
     if (proposed_score - current_score > 250):
-        exp = 1
+        exp = 10000
     else:
         exp = np.exp(proposed_score - current_score)
 
@@ -36,8 +37,24 @@ def get_edge_addition_count(G: ig.Graph):
     n = len(G.vs)
 
     # Because of DAG topological ordering
-    return (n*(n-1))/2 - len(G.es)
+    return (n*(n-1)) - len(G.es)
 
+def other_count(G):
+    count = 0
+    M = G.copy()
+
+    # Try adding edges
+    for a, b in  itertools.product(M.vs, repeat=2):
+        if(a == b or M.are_connected(a, b) or M.are_connected(b, a)):
+            continue
+        
+        M.add_edges([(a, b)])
+        if (M.is_dag()):
+            count += 1
+            
+        M.delete_edges([(a, b)])
+    
+    return count
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_reversal_count(G: ig.Graph):
@@ -54,7 +71,7 @@ def get_edge_reversal_count(G: ig.Graph):
 
     return count
 
-scores = read_scores_from_file('data/pigs-5000.jkl')
+scores = read_scores_from_file('data/insurance-5000.jkl')
 
 def get_scores():
     return scores
