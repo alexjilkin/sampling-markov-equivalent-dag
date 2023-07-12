@@ -1,11 +1,8 @@
-import itertools
 import igraph as ig
 import numpy as np
 
-from utils import plot, read_scores_from_file, get_graph_hash_ig
+from utils import plot, read_scores_from_file
 from scipy.special import binom
-
-get_graph_hash = get_graph_hash_ig
 
 def N(G: ig.Graph):
     return get_edge_addition_count(G) + get_edge_reversal_count(G) + len(list(G.es))
@@ -25,25 +22,21 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
     if (proposed_score == -np.inf):
         return 0
 
-    res = np.exp(proposed_score - current_score) * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
+    # Prevent overlow
+    if (proposed_score - current_score > 250):
+        exp = 1
+    else:
+        exp = np.exp(proposed_score - current_score)
+
+    res = exp * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
     return res  
 
 # Calculate how many edges can be added without creating a cycle
-def get_edge_addition_count(M: ig.Graph):
-    count = 0
-    
-    # Try adding edges
-    for a, b in  itertools.product(M.vs, repeat=2):
-        if(a == b or M.are_connected(a, b) or M.are_connected(b, a)):
-            continue
-        
-        M.add_edge(a, b)
-        if (M.is_dag()):
-            count += 1
-            
-        M.delete_edges([(a, b)])
-    
-    return count
+def get_edge_addition_count(G: ig.Graph):
+    n = len(G.vs)
+
+    # Because of DAG topological ordering
+    return (n*(n-1))/2 - len(G.es)
 
 
 # Calculate how many edges can be added without creating a cycle
@@ -63,17 +56,18 @@ def get_edge_reversal_count(G: ig.Graph):
 
 scores = read_scores_from_file('data/boston.jkl')
 
+def get_scores():
+    return scores
+
 def score(G: ig.Graph):
     score = 0
     
     def get_local_score(node):
-        # Adjust from 0 to 1 counting system
-        parents = frozenset(map(lambda x: x+1, G.predecessors(node)))
-        # if (len(parents) == 0):
-        #     return scores[node.index + 1][frozenset({})]
+        # Adjust from 0 to 1 counting system, boston starts from 1 but child-5000 starts from 0
+        parents = frozenset(map(lambda x: x + 1, G.predecessors(node)))
         
         try:
-            res = scores[node.index + 1][parents]
+            res = scores[node.index][parents]
         except KeyError:
             res = -np.inf
         return res

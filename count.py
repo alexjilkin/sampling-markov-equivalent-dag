@@ -76,7 +76,7 @@ def count(G: nx.Graph, record=lambda x, y: None, pool=None):
         results.append(result)
 
     # Product of each component
-    result = reduce(lambda x, y: x*y, results)
+    result = reduce(lambda x, y: x*y, results, 1)
     memo[G_hash] = result
 
     return result

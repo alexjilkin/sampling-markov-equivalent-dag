@@ -1,9 +1,11 @@
+import random
 from matplotlib import pyplot as plt
 import networkx as nx
 import numpy as np
 import hashlib
 from itertools import chain
 import igraph as ig
+
 
 def read_graph_from_file(filename, random_weights=False):
 
@@ -24,9 +26,22 @@ def read_graph_from_file(filename, random_weights=False):
 
     return G
 
-def read_scores_from_file(filename):
+# def random_dag(G: ig.Graph) -> ig.Graph:
+#     new_G = G.copy()
 
-    # file = open('./sample.gr', 'r')
+#     for i in range(25):
+#         vertices = list(new_G.vs)
+    
+#         a, b = random.sample(vertices, k=2)
+#         if not new_G.are_connected(b, a) and not new_G.are_connected(a, b):
+#             new_G.add_edge(a, b)
+
+#     if(new_G.is_dag() and score(new_G) != -np.inf):
+#         return new_G
+#     else:
+#         return random_dag(G)
+
+def read_scores_from_file(filename):
     file = open(filename, 'r')
     lines = [tuple(line.strip().split(" ")) for line in file.readlines()]
     n = int(lines[0][0])
@@ -34,7 +49,7 @@ def read_scores_from_file(filename):
     lines = lines[1:]
     scores = {}
 
-    for i in range(1, n + 1):
+    for i in range(0, n):
         v = lines[0][0]
         j_count = int(lines[0][1])
         scores[i] = {}
@@ -71,4 +86,8 @@ def plot(G, title=""):
     plt.show()
 
 def get_es_diff(G1: ig.Graph, G2: ig.Graph):
-    return set(map(lambda e: (e.source, e.target), G1.es)) - set(map(lambda e: (e.source, e.target), G2.es))
+    G1_set = set(map(lambda e: (e.source, e.target), G1.es))
+    G2_set = set(map(lambda e: (e.source, e.target), G2.es))
+
+    both = G1_set.intersection(G2_set)
+    return (G1_set - both).union(G2_set - both)

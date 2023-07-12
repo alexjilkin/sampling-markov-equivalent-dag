@@ -1,33 +1,17 @@
-import itertools
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from meeks import CPDAG
-from utils import get_es_diff, plot, read_scores_from_file
-from count import FP, count, get_maximal_cliques, v_func, C
+from markov_equivalent import get_markov_equivalent
+from utils import get_es_diff, plot
 import igraph as ig
-import networkx as nx
 
-from probabilities import R, get_edge_addition_count, get_edge_reversal_count, score
+from probabilities import R, get_edge_addition_count, get_edge_reversal_count, get_scores, score
 import random
 
-def random_dag(G: ig.Graph) -> ig.Graph:
-    new_G = G.copy()
-
-    for i in range(25):
-        vertices = list(new_G.vs)
-    
-        a, b = random.sample(vertices, k=2)
-        if not new_G.are_connected(b, a) and not new_G.are_connected(a, b):
-            new_G.add_edge(a, b)
-
-    if(new_G.is_dag() and score(new_G) != -np.inf):
-        return new_G
-    else:
-        return random_dag(G)
-        
+# Increase recursion limit from 10^3
+sys.setrecursionlimit(10**5)
 
 def propose_add(G: ig.Graph) -> ig.Graph:
-
     new_G = G.copy()
     vertices = list(new_G.vs)
     
@@ -41,52 +25,25 @@ def propose_add(G: ig.Graph) -> ig.Graph:
         return new_G
     
     return propose_add(G)        
-    
+
 def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
-    essential_g = CPDAG(G)
-
-    # Create a networkx graph to be used with count()
-    U = nx.Graph()
-
-    for e in essential_g.es:
-        U.add_edge(e.source, e.target)
-
-    tos = sample_markov_equivalent(U)
-
-    if len(tos) == 0:
-        return G
+    equivalent_G = get_markov_equivalent(G)
     
-    equivalent_G = ig.Graph(directed=True)
-    equivalent_G.add_vertices(len(G.vs))
+    lim = 20
+    i = 0
 
-    for to in tos:
-        # Direct based on to
-        for v in to:
-            ids = G.incident(v, mode="all")
-        
-            for id in ids:
-                e = G.es[id]
-                if not (e.source in to and e.target in to):
-                    continue
-                if (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
-                    continue
-                if (to.index(e.source) < to.index(e.target)):
-                    equivalent_G.add_edge(e.source, e.target)
-                else:
-                    equivalent_G.add_edge(e.target, e.source)
+    while(len(get_es_diff(equivalent_G, G)) == 0 and i < lim):
+        equivalent_G = get_markov_equivalent(G)
+        i+=1
 
-    for e in G.es:
-        if not (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
-            equivalent_G.add_edge(e.source, e.target)
-    
     return equivalent_G
     
 def propose_remove(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
     edges = list(new_G.es)
     
-    edge = random.choice(edges)
-    new_G.delete_edges([edge])
+    e = random.choice(edges)
+    new_G.delete_edges([(e.source, e.target)])
 
     return new_G
 
@@ -102,96 +59,40 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
         
     return propose_reverse(G)
     
-def main():
-    scores = read_scores_from_file('data/boston.jkl')
-
-    n = 1000
-    G = ig.Graph(directed=True)
-    G.add_vertices(len(scores))
-    G = random_dag(G)
-
-    scores = []
-    markov_scores = []
-
-    for i in range(10):
-        samples, G_no_markov = sample(G, n)
-        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}")
-
-        samples, G_markov = sample(G, n, True)
-        plt.plot(np.arange(len(samples)), samples , label=f"Random-{i+1}-markov", linestyle='dashed')
-
-    plt.legend()
-    plt.ylim([-22000, -19500])
-    plt.show()
-
 # G is a UCCG
 def sample(G: ig.Graph, n, markov_equivalent = False):
     scores = []
     G_i = G.copy()
     steps = range(n)
 
-    for i in steps: 
+    steps_since_accepted = 0
+
+    for i in steps:
         a = get_edge_addition_count(G_i)
         reverse = get_edge_reversal_count(G_i)
         remove = len(list(G_i.es))
         total = a+reverse+remove
         
         # Choose uniformly from adding, removing or reversing an edge
-        proposal_func_name = np.random.choice(['add', 'remove', 'reverse'], p=[a/total, remove/total, reverse/total])
-        
-        if np.random.uniform() < 0.01 and markov_equivalent:
-            G_i_plus_1 = propose_markov_equivalent(G_i)
-            print(score(G_i), score(G_i_plus_1), get_es_diff(G_i, G_i_plus_1))
-        else:
-            G_i_plus_1 = globals()[f'propose_{proposal_func_name}'](G_i)
+        proposal_func = np.random.choice([propose_add, propose_remove, propose_reverse], p=[a/total, remove/total, reverse/total])
 
+        if (steps_since_accepted > 50 and markov_equivalent):
+            proposal_func = np.random.choice([proposal_func, propose_markov_equivalent], p=[0.8, 0.2])
+
+        G_i_plus_1 = proposal_func(G_i)
+        if (propose_markov_equivalent == proposal_func):
+                print(score(G_i), score(G_i_plus_1), get_es_diff(G_i_plus_1, G_i), i, proposal_func.__name__)
+                
         A = np.min([1, R(G_i, G_i_plus_1)])
+
         if (np.random.uniform() < A):
+            steps_since_accepted = 0
+            
+
             G_i = G_i_plus_1
-        
+
         scores.append(score(G_i))
+        steps_since_accepted+=1
         
     return scores, G_i
 
-# G is a the essential graph
-def sample_markov_equivalent(U: nx.Graph):
-    def get_topological_order(UCCG: nx.Graph):
-        AMO = count(UCCG)
-
-        clique_tree = nx.junction_tree(UCCG)
-        maximal_cliques = get_maximal_cliques(clique_tree)
-        r = maximal_cliques[0]
-
-        p = list(map(lambda v: v_func(UCCG, r, v, clique_tree) / AMO, maximal_cliques))
-        
-        # Maximal clique drawn with probability proportional to v_func
-        v = maximal_cliques[np.random.choice(np.arange(len(p)), p=p)]
-
-        K = set(v)
-        to = list(K)
-
-        permutations = list(itertools.permutations(to))
-    
-        # uniformly drawn permutation of ι(v) without prefix in FP(v, T )
-        is_good_to = False
-        while not is_good_to:
-            to = random.choice(permutations)
-            is_good_to = True
-
-            for fp in FP(clique_tree, r, v):
-                if (np.array_equal(to[:len(fp)], fp)):
-                    is_good_to = False
-        
-        for H in C(UCCG, K):
-            to += get_topological_order(H)
-
-        return to
-    
-    # pre-process
-    count(U)
-
-    UCCGs = [U.subgraph(component) for component in nx.connected_components(U)]
-    tos = list(map(lambda UCCG: get_topological_order(UCCG),  UCCGs))
-
-    return tos
-main()
