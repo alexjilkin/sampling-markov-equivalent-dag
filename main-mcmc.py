@@ -7,14 +7,14 @@ from probabilities import get_scores, score
 from sampling import sample
 
 def main():
-    n = 15000
+    n = 10000
 
     non_markov_scores = []
     markov_scores = []
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
     
-    for i in range(1):
+    for i in range(2):
         random.seed(i * 132)
 
         samples, G_markov = sample(G, n, True)

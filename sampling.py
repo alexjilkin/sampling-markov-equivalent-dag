@@ -76,18 +76,22 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func = np.random.choice([propose_add, propose_remove, propose_reverse], p=[a/total, remove/total, reverse/total])
 
-        if (steps_since_accepted > 50 and markov_equivalent):
-            proposal_func = np.random.choice([proposal_func, propose_markov_equivalent], p=[0.8, 0.2])
+        n = len(G_i.vs)
+        max_vs_count = (n * (n - 1)) / 2
+
+        if (steps_since_accepted > np.sqrt(max_vs_count - len(G_i.es)) and markov_equivalent):
+            proposal_func = np.random.choice([proposal_func, propose_markov_equivalent], p=[0.3, 0.7])
 
         G_i_plus_1 = proposal_func(G_i)
-        if (propose_markov_equivalent == proposal_func):
-                print(score(G_i), score(G_i_plus_1), get_es_diff(G_i_plus_1, G_i), i, proposal_func.__name__)
-                
+        # if (propose_markov_equivalent == proposal_func):
+        
         A = np.min([1, R(G_i, G_i_plus_1)])
 
         if (np.random.uniform() < A):
             steps_since_accepted = 0
-            
+            if (np.abs(score(G_i_plus_1) - score(G_i)) > 1 or proposal_func == propose_markov_equivalent):
+                print(score(G_i), score(G_i_plus_1), get_es_diff(G_i_plus_1, G_i), i, proposal_func.__name__)
+
 
             G_i = G_i_plus_1
 
