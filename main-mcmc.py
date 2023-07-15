@@ -14,7 +14,7 @@ def main():
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
     
-    for i in range(5):
+    for i in range(2):
         random.seed(i * 132)
 
         samples, G_markov = sample(G, n, True)
@@ -25,8 +25,8 @@ def main():
         plt.plot(np.arange(len(samples)), samples , label=f"Empty-{i}")
         non_markov_scores.append(score(G_no_markov))
 
-    print(f"markov:{np.array(markov_scores).mean()}")
-    print(f"non-markov:{np.array(non_markov_scores).mean()}")
+    # print(f"markov:{np.array(markov_scores).mean()}")
+    # print(f"non-markov:{np.array(non_markov_scores).mean()}")
     plt.legend()
     plt.show()
 
