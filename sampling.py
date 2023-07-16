@@ -9,11 +9,11 @@ from probabilities import R, get_edge_addition_count, get_edge_reversal_count, g
 import random
 
 # Increase recursion limit from 10^3
-sys.setrecursionlimit(10**5)
+sys.setrecursionlimit(10**4)
 
 def propose_add(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
-    vertices = list(new_G.vs)
+    vertices = list(filter(lambda v: len(G.neighborhood(v)) < 6,new_G.vs))
     
     a, b = random.sample(vertices, k=2)
     if (new_G.are_connected(a, b) or new_G.are_connected(b, a)):
@@ -28,16 +28,6 @@ def propose_add(G: ig.Graph) -> ig.Graph:
 
 def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
     return get_markov_equivalent(G)
-    equivalent_G =  get_markov_equivalent(G)
-    
-    i = 0
-    lim = 30
-
-    while (len(get_es_diff(equivalent_G, G)) == 0 and i < lim):
-       equivalent_G =  get_markov_equivalent(G)
-       i +=1
-
-    return equivalent_G 
     
 def propose_remove(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
@@ -75,17 +65,16 @@ def sample(G: ig.Graph, n, markov_equivalent = False):
         # Choose uniformly from adding, removing or reversing an edge
         proposal_func = np.random.choice([propose_add, propose_remove, propose_reverse], p=[a/total, remove/total, reverse/total])
 
-        if (markov_equivalent and i > 50):
-            proposal_func = np.random.choice([proposal_func, propose_markov_equivalent], p=[0.99, 0.01])
+        if (markov_equivalent and i > 2000):
+            proposal_func = np.random.choice([proposal_func, propose_markov_equivalent], p=[0.95, 0.05])
 
         G_i_plus_1 = proposal_func(G_i)
        
-        if(proposal_func == propose_markov_equivalent):
-            print(score(G_i), score(G_i_plus_1), get_es_diff(G_i_plus_1, G_i), i, proposal_func.__name__)
 
         A = np.min([1, R(G_i, G_i_plus_1)]) 
         if (np.random.uniform() < A):
-
+            if(proposal_func == propose_markov_equivalent):
+                print(score(G_i), score(G_i_plus_1), get_es_diff(G_i_plus_1, G_i), i, proposal_func.__name__)
             G_i = G_i_plus_1
 
         scores.append(score(G_i))
