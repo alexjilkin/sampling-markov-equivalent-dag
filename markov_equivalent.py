@@ -27,7 +27,6 @@ def get_markov_equivalent_topological_orders(U: nx.Graph):
     
         # uniformly drawn permutation of ι(v) without prefix in FP(v, T )
         is_forbidden_to = True
-
         while is_forbidden_to:
             to = random.choice(permutations)
 

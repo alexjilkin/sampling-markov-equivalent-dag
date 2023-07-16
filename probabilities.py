@@ -70,7 +70,7 @@ def get_edge_reversal_count(G: ig.Graph):
 
     return count
 
-scores = read_scores_from_file('data/boston.jkl')
+scores = read_scores_from_file('data/barley.jkl')
 
 def get_scores():
     return scores
@@ -80,7 +80,7 @@ def score(G: ig.Graph):
     
     def get_local_score(node):
         # Adjust from 0 to 1 counting system, boston starts from 1 but child-5000 starts from 0
-        parents = frozenset(map(lambda x: x + 1, G.predecessors(node)))
+        parents = frozenset(map(lambda x: x, G.predecessors(node)))
         
         try:
             res = scores[node.index][parents]

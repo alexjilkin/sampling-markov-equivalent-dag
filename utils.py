@@ -50,15 +50,15 @@ def read_scores_from_file(filename):
     scores = {}
 
     for i in range(0, n):
-        v = lines[0][0]
+        v = int(lines[0][0])
         j_count = int(lines[0][1])
-        scores[i] = {}
+        scores[v] = {}
 
         for j in range(1, j_count + 1):
             score = float(lines[j][0])
             
             parents = frozenset(map(int, lines[j][2:]))
-            scores[i][parents] = score
+            scores[v][parents] = score
         
         lines = lines[j_count + 1:]
 
