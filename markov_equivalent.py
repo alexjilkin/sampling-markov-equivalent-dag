@@ -26,14 +26,13 @@ def get_markov_equivalent_topological_orders(U: nx.Graph):
         permutations = list(itertools.permutations(to))
     
         # uniformly drawn permutation of ι(v) without prefix in FP(v, T )
-        is_good_to = False
-        while not is_good_to:
-            to = random.choice(permutations)
-            is_good_to = True
+        is_forbidden_to = True
 
-            for fp in FP(clique_tree, r, v):
-                if (np.array_equal(to[:len(fp)], fp)):
-                    is_good_to = False
+        while is_forbidden_to:
+            to = random.choice(permutations)
+
+            is_start_with_fp = [np.array_equal(to[:len(fp)], fp) for fp in FP(clique_tree, r, v)]
+            is_forbidden_to = any(is_start_with_fp)
         
         for H in C(UCCG, K):
             to += get_topological_order(H)

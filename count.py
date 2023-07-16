@@ -6,7 +6,6 @@ from operator import mul
 import numpy as np
 from utils import get_graph_hash
 
-memo = {}
 v_func_memo = {}
 
 def v_func(G, r, v, clique_tree, record=lambda x, y: None):
@@ -22,17 +21,17 @@ def v_func(G, r, v, clique_tree, record=lambda x, y: None):
     results = [count(H, record) for H in subproblems]
     prod = reduce(mul, results) if len(results) > 0 else 1
     
-    fp = FP(clique_tree, r, v)
+    fps = FP(clique_tree, r, v)
 
-    fp_lens = list(map(lambda a: len(a) , fp))
+    fp_lens = [len(fp) for fp in fps]
     fp_lens.insert(0, 0)
 
     res = phi(len(set(v)), 0, fp_lens, {}) * prod
-
     v_func_memo[frozenset(v)] = res
     
     return res
 
+memo = {}
 def count(G: nx.Graph, record=lambda x, y: None, pool=None):
     start = time.time()
 
@@ -86,8 +85,6 @@ def FP(T, r, v):
     
     path = list(nx.shortest_path(T, r, v))
     p = len(path)
-    # except nx.exception.NetworkXNoPath:
-    #     return []
 
     for i in range(0, p - 1):
         intersection = {value for value in path[i] if value in path[i + 1]}
@@ -100,7 +97,6 @@ def FP(T, r, v):
     return list(res)
 
 fmemo = {}
-
 def fac(n):
     if n in fmemo:
         return fmemo[n]
@@ -114,6 +110,8 @@ def fac(n):
     fmemo[n] = res
     return res
 
+# pmemo is for the recursive nature of this function and should be empty for
+# each iteration
 def phi(cliquesize, i, fp, pmemo):
     if i in pmemo:
         return pmemo[i]
@@ -175,6 +173,7 @@ def C(G: nx.Graph, K: set):
     
     return output
 
+# Get maximal cliques out of a clique tree that includes minimal seperators
 def get_maximal_cliques(clique_tree: nx.Graph):
     maximal_cliques = []
     for clique1 in clique_tree.nodes:
