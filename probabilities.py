@@ -13,7 +13,6 @@ def P(M: ig.Graph):
     G_i_count = np.fromiter(map(lambda v: len(list(M.predecessors(v))), M.vs), int)
     
     return f(len(list(M.vs)), G_i_count).prod()
-
      
 def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
     proposed_score = score(M_i_plus_1)
@@ -24,11 +23,12 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
 
     # Prevent overlow
     if (proposed_score - current_score > 300):
-        exp = 100
+        exp = 1000
     else:
         exp = np.exp(proposed_score - current_score)
 
-    res = exp * (N(M_i) / N(M_i_plus_1))
+    res = exp * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
+    # res = exp * (N(M_i) / N(M_i_plus_1))
     return res  
 
 # Calculate how many edges can be added without creating a cycle
@@ -37,23 +37,6 @@ def get_edge_addition_count(G: ig.Graph):
 
     # Because of DAG topological ordering
     return ((n*(n-1)) / 2) - len(G.es)
-
-# def other_count(G):
-#     count = 0
-#     M = G.copy()
-
-#     # Try adding edges
-#     for a, b in  itertools.product(M.vs, repeat=2):
-#         if(a == b or M.are_connected(a, b) or M.are_connected(b, a)):
-#             continue
-        
-#         M.add_edges([(a, b)])
-#         if (M.is_dag()):
-#             count += 1
-            
-#         M.delete_edges([(a, b)])
-    
-#     return count
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_reversal_count(G: ig.Graph):
@@ -70,7 +53,7 @@ def get_edge_reversal_count(G: ig.Graph):
 
     return count
 
-scores = read_scores_from_file('data/barley.jkl')
+scores = read_scores_from_file('data/barley-5000.jkl')
 
 def get_scores():
     return scores
@@ -97,4 +80,4 @@ def score(G: ig.Graph):
         
         score += local_score
 
-    return (score + np.log(P(G)))
+    return score

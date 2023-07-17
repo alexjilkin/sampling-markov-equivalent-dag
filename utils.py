@@ -42,26 +42,19 @@ def read_graph_from_file(filename, random_weights=False):
 #         return random_dag(G)
 
 def read_scores_from_file(filename):
-    file = open(filename, 'r')
-    lines = [tuple(line.strip().split(" ")) for line in file.readlines()]
-    n = int(lines[0][0])
-
-    lines = lines[1:]
     scores = {}
-
-    for i in range(0, n):
-        v = int(lines[0][0])
-        j_count = int(lines[0][1])
-        scores[v] = {}
-
-        for j in range(1, j_count + 1):
-            score = float(lines[j][0])
-            
-            parents = frozenset(map(int, lines[j][2:]))
-            scores[v][parents] = score
+    
+    with open(filename, 'r') as file:
+        lines = [line.strip().split(" ") for line in file]
         
-        lines = lines[j_count + 1:]
-
+    n = int(lines[0][0])
+    lines = lines[1:]
+    
+    for _ in range(n):
+        v, j_count = map(int, lines[0][:2])
+        scores[v] = {frozenset(map(int, line[2:])): float(line[0]) for line in lines[1:j_count+1]}
+        lines = lines[j_count+1:]
+        
     return scores
 
 def get_graph_hash(G: nx.Graph) -> str:

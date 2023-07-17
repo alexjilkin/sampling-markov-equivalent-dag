@@ -12,14 +12,18 @@ def main():
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
     
-    for i in range(2):
-        random.seed(i * 132)
+    x = np.arange(n)
+    # figure, axis = plt.subplots(1, 2)
+
+    for i in range(3):
+        # random.seed(i * 12)
 
         samples, G_markov = sample(G, n, True)
-        plt.plot(np.arange(len(samples)), samples , label=f"Emtpy-{i+1}-markov", linestyle='dashed')
+        plt.plot(x, samples , label=f"Emtpy-{i+1}-Markov", linestyle='dashed')
 
         samples, G_no_markov = sample(G, n)
         plt.plot(np.arange(len(samples)), samples , label=f"Empty-{i}")
+    # axis[1].hist(samples, bins=100)
 
     plt.legend()
     plt.show()
