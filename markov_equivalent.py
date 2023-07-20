@@ -39,14 +39,15 @@ def get_markov_equivalent_topological_orders(U: nx.Graph):
         return to
     
     # pre-process
-    count(U)
+    AMOs = count(U)
+
     # Gets the UCCGs from the essential graph
     UCCGs = [U.subgraph(component) for component in nx.connected_components(U)]
     UCCGs = list(filter(lambda UCCG: len(UCCG.nodes) > 1, UCCGs))
         
     tos = [get_topological_order(UCCG) for UCCG in UCCGs]
 
-    return tos
+    return tos, AMOs
 
 def get_markov_equivalent(G: ig.Graph) -> ig.Graph:
     # A = nx.DiGraph()
@@ -74,10 +75,10 @@ def get_markov_equivalent(G: ig.Graph) -> ig.Graph:
     for e in essential_g.es:
         U.add_edge(e.source, e.target)
 
-    tos = get_markov_equivalent_topological_orders(U)
+    tos, AMOs = get_markov_equivalent_topological_orders(U)
 
     if len(tos) == 0:
-        return G
+        return G, AMOs
     
     equivalent_G = ig.Graph(directed=True)
     equivalent_G.add_vertices(len(G.vs))
@@ -96,7 +97,7 @@ def get_markov_equivalent(G: ig.Graph) -> ig.Graph:
         if not (equivalent_G.are_connected(e.source, e.target) or equivalent_G.are_connected(e.target, e.source)):
             equivalent_G.add_edge(e.source, e.target)
 
-    return equivalent_G
+    return equivalent_G, AMOs
 
 def is_strongly_protected(G: ig.Graph, G_lines: ig.Graph, e: ig.Edge):
     a, b = e.source, e.target

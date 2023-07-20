@@ -6,6 +6,16 @@ from scipy.special import binom
 def N(G: ig.Graph):
     return get_edge_addition_count(G) + get_edge_reversal_count(G) + len(list(G.es))
 
+def uniform_prior(M: ig.Graph):
+    num_vertices = len(M.vs)
+    num_edges = M.ecount()
+    num_possible_edges = num_vertices * (num_vertices - 1) / 2
+    
+    prior_score = np.log(1.0 / num_possible_edges)
+    prior_score *= num_edges  # Penalize based on the number of edges
+    
+    return prior_score
+
 def P(M: ig.Graph):
     def f(n, G_i_count):    
         return 1 / binom(n - 1, G_i_count)
@@ -22,8 +32,9 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
         return 0
 
     # Prevent overlow
-    if (proposed_score - current_score > 300):
+    if (proposed_score - current_score > 250):
         exp = 1000
+        print("overflow")
     else:
         exp = np.exp(proposed_score - current_score)
 
@@ -34,9 +45,9 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
 # Calculate how many edges can be added without creating a cycle
 def get_edge_addition_count(G: ig.Graph):
     n = len(G.vs)
-
+    
     # Because of DAG topological ordering
-    return ((n*(n-1)) / 2) - len(G.es)
+    return ((n*(n-1)) // 2) - len(G.es) - n + 1
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_reversal_count(G: ig.Graph):
@@ -53,7 +64,7 @@ def get_edge_reversal_count(G: ig.Graph):
 
     return count
 
-scores = read_scores_from_file('data/barley-5000.jkl')
+scores = read_scores_from_file('data/alarm-100.jkl')
 
 def get_scores():
     return scores
