@@ -37,7 +37,6 @@ def count(G: nx.Graph, record=lambda x, y: None, pool=None):
 
     G_hash = get_graph_hash(G)
 
-    # G_hash = nx.weisfeiler_lehman_graph_hash(G)
     record('hash', time.time() - start)
 
     try:

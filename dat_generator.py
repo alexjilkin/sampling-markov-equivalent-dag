@@ -3,12 +3,15 @@ from pgmpy.sampling import BayesianModelSampling
 import pandas as pd
 
 # Load the .bif file
-reader = BIFReader('./data/networks/insurance.bif')
+network_name = 'win95pts'
+reader = BIFReader(f'./data/networks/{network_name}.bif')
+sample_size = 500
+
 model = reader.get_model()
 
 # Generate samples
 sampler = BayesianModelSampling(model)
-samples = sampler.forward_sample(size=100)
+samples = sampler.forward_sample(size=sample_size)
 
 # Create mapping from category names to indices
 mapping = {var: {state: i for i, state in enumerate(model.get_cpds(var).state_names[var])}
@@ -18,7 +21,7 @@ mapping = {var: {state: i for i, state in enumerate(model.get_cpds(var).state_na
 samples = samples.replace(mapping)
 
 # Save samples to .dat file
-with open('insurance-100.dat', 'w') as f:
+with open(f'{network_name}-{sample_size}.dat', 'w') as f:
     # Write variable names (0 to n)
     f.write(' '.join(map(str, range(len(model.nodes())))) + '\n')
     

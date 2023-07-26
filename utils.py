@@ -43,28 +43,39 @@ def read_graph_from_file(filename, random_weights=False):
 
 def read_scores_from_file(filename):
     scores = {}
-    
+
     with open(filename, 'r') as file:
-        lines = [line.strip().split(" ") for line in file]
+        n = int(next(file).strip())
         
-    n = int(lines[0][0])
-    lines = lines[1:]
-    
-    for _ in range(n):
-        v, j_count = map(int, lines[0][:2])
-        scores[v] = {frozenset(map(int, line[2:])): float(line[0]) for line in lines[1:j_count+1]}
-        lines = lines[j_count+1:]
-        
+        for _ in range(n):
+            v, j_count = map(int, next(file).strip().split(" ")[:2])
+            scores[v] = {}
+
+            for _ in range(j_count):
+                line = next(file).strip().split(" ")
+                scores[v][frozenset(map(int, line[2:]))] = float(line[0])
+
     return scores
 
 def get_graph_hash(G: nx.Graph) -> str:
-    hashable_graph = tuple(chain(G.nodes.items(), G.edges.items()))
-    return hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+    sorted_edges = sorted([tuple(edge) for edge in G.edges()])
+    edges_str = str(sorted_edges)
+    hash_object = hashlib.sha256()
+    hash_object.update(edges_str.encode())
+    return hash_object.hexdigest()
 
+# Works only for undirected
 def get_graph_hash_ig(G: ig.Graph) -> str:
-    hashable_graph = tuple(chain(G.vs, G.es))
-    return hashlib.sha256(str(hashable_graph).encode()).hexdigest()
+    sorted_edges = sorted([tuple(sorted(edge)) for edge in G.get_edgelist()])
+    
+    edges_str = str(sorted_edges)
 
+    hash_object = hashlib.sha256()
+
+    hash_object.update(edges_str.encode())
+
+    return hash_object.hexdigest()
+    
 memo = {}
 
 def memo_by_graph(G: nx.DiGraph, key: str, value):
@@ -84,3 +95,7 @@ def get_es_diff(G1: ig.Graph, G2: ig.Graph):
 
     both = G1_set.intersection(G2_set)
     return (G1_set - both).union(G2_set - both)
+
+def seed(s):
+    np.random.seed(s * 1 + 1)
+    random.seed(s * 2 + 3)

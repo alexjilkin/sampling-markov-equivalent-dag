@@ -4,7 +4,7 @@ from utils import plot, read_scores_from_file
 from scipy.special import binom
 
 def N(G: ig.Graph):
-    return get_edge_addition_count(G) + get_edge_reversal_count(G) + len(list(G.es))
+    return get_edge_addition_count(G) + G.ecount() +  G.ecount()
 
 def uniform_prior(M: ig.Graph):
     num_vertices = len(M.vs)
@@ -32,39 +32,30 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
         return 0
 
     # Prevent overlow
-    if (proposed_score - current_score > 250):
-        exp = 1000
-        print("overflow")
+    if (proposed_score - current_score > 700):
+        exp = 1
     else:
         exp = np.exp(proposed_score - current_score)
 
-    res = exp * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
-    # res = exp * (N(M_i) / N(M_i_plus_1))
-    return res  
+    # res = exp * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
+    # res = exp * (P(M_i_plus_1) / P(M_i))
+    return exp  
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_addition_count(G: ig.Graph):
-    n = len(G.vs)
+    n = G.vcount()
     
-    # Because of DAG topological ordering
-    return ((n*(n-1)) // 2) - len(G.es) - n + 1
+    return n*(n-1)
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_reversal_count(G: ig.Graph):
-    count = 0
-    M = G.copy()
+    return len(G.es)
 
-    # Reversing edges
-    for e in M.es:
-        # a, b = e.source, e.target
-        M.reverse_edges([e])
-        if (M.is_dag()):        
-            count += 1
-        M.reverse_edges([e])
+scores = []
 
-    return count
-
-scores = read_scores_from_file('data/alarm-100.jkl')
+def init_scores(name):
+    global scores
+    scores = read_scores_from_file(f'data/scores/{name}.jkl')
 
 def get_scores():
     return scores
@@ -91,4 +82,4 @@ def score(G: ig.Graph):
         
         score += local_score
 
-    return score
+    return score + np.log(P(G))

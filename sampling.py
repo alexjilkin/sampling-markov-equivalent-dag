@@ -1,8 +1,8 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from markov_equivalent import get_markov_equivalent
-from utils import get_es_diff, plot
+from markov_equivalent import CPDAG, get_markov_equivalent
+from utils import get_es_diff, get_graph_hash_ig, plot
 import igraph as ig
 
 from probabilities import R, get_scores, score
@@ -11,7 +11,7 @@ import random
 # Increase recursion limit from 10^3
 sys.setrecursionlimit(10**4)
 
-max_parents = 3
+max_parents = 5
     
 def propose_add(G: ig.Graph) -> ig.Graph:
     new_G = G.copy()
@@ -60,54 +60,61 @@ def propose_reverse(G: ig.Graph) -> ig.Graph:
     return False
     
 # G is a UCCG
-def sample(G: ig.Graph, size, markov_equivalent = False):
+def sample(G: ig.Graph, size, is_markov_equivalent = False):
     G_i = G.copy()
 
     steps = []
-    AMOs = 1
-    base_prob = 0.00001
-    prob = 1 / 15
-    
-    while len(steps) < size:
+    AMOs = ''
+    equivalence_classes_dict = {}
+
+    for i in range(size):
         i = len(steps)
-        n = len(list(G_i.vs))
-        add = n * (n - 1)
-        E = len(list(G_i.es))
-        reverse = E 
-        remove = E
-        total = add+remove+reverse
+        G_i_plus_1, step_type = propose_next(G_i, is_markov_equivalent, i)
 
-        # Choose uniformly from adding, removing or reversing an edge
-        proposal_func = np.random.choice([propose_add, propose_remove, propose_reverse], p=[add/total, remove/total, reverse/total])
+        if (step_type != ''):
+            current_score = score(G_i)
+            proposed_score = score(G_i_plus_1)
 
-        if markov_equivalent:
-            proposal_func = propose_markov_equivalent if np.random.uniform() <= prob  else proposal_func
-    
-        if (proposal_func == propose_markov_equivalent):
-            G_i_plus_1, AMOs = proposal_func(G_i)
-            print(AMOs)
-        else:
-            G_i_plus_1 = proposal_func(G_i)
+            A = np.min([1, R(G_i, G_i_plus_1)]) 
 
-        # Rejection sampling
-        if (not G_i_plus_1):
-            continue
+            if (np.random.uniform() <= A):
+                print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
 
-        current_score = score(G_i)
-        proposed_score = score(G_i_plus_1)
+                G_i = G_i_plus_1
+            # If rejected, try for an equivalence step
+            elif is_markov_equivalent and np.random.uniform() <= 0.25:
+                G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
+                proposed_score = score(G_i_plus_1)
+                print(f'{i} {score(G_i):.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, equivalence')
+                G_i = G_i_plus_1
 
-        A = np.min([1, R(G_i, G_i_plus_1)]) 
 
-        if (np.random.uniform() <= A):
-            score_delta = proposed_score - current_score
-            # if (score_delta > 2 and proposal_func != propose_markov_equivalent):
-                # prob = base_prob
+            G_cpdag = CPDAG(G_i)
+            G_cpdag_hash = get_graph_hash_ig(G_cpdag)
+            if G_cpdag_hash not in equivalence_classes_dict:
+                equivalence_classes_dict[G_cpdag_hash] = 0
 
-            print(f'{i} {current_score:.1f} {proposed_score:.1f} {get_es_diff(G_i_plus_1, G_i)} {proposal_func.__name__}')
-            G_i = G_i_plus_1
-        # else:
-            # prob = prob + base_prob if prob <= 0.05 else prob
+            equivalence_classes_dict[G_cpdag_hash] += 1
 
         steps.append(G_i)
-        
-    return steps, G_i
+    return steps, G_i, equivalence_classes_dict
+
+def propose_next(G_i: ig.Graph, is_markov_equivalent, i):
+    a, b = random.sample(list(G_i.vs), k=2)
+    G_i_plus_1 = G_i.copy()
+    
+    if (G_i.are_connected(a, b)):
+        G_i_plus_1.delete_edges([(a,b)])
+        return G_i_plus_1, 'remove'
+    elif (G_i.are_connected(b, a)):
+        G_i_plus_1.delete_edges([(b, a)])
+        G_i_plus_1.add_edges([(a, b)])
+
+        if G_i_plus_1.is_dag():
+            return G_i_plus_1, 'reverse'
+    else:
+        G_i_plus_1.add_edges([(a, b)])
+        if G_i_plus_1.is_dag():
+            return G_i_plus_1, 'add'
+    
+    return G_i, ''
