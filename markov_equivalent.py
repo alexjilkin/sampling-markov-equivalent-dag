@@ -7,7 +7,7 @@ from count import C, FP, count, get_maximal_cliques, v_func
 from utils import plot
 # from cdt.metrics import get_CPDAG
 
-# U is a the essential graph
+# U is a the essential graph with only the undirected edges
 def get_markov_equivalent_topological_orders(U: nx.Graph):
     def get_topological_order(UCCG: nx.Graph):
         AMO = count(UCCG)
@@ -26,11 +26,12 @@ def get_markov_equivalent_topological_orders(U: nx.Graph):
         permutations = list(itertools.permutations(to))
     
         # uniformly drawn permutation of ι(v) without prefix in FP(v, T )
+        FPs = FP(clique_tree, r, v)
         is_forbidden_to = True
         while is_forbidden_to:
             to = random.choice(permutations)
 
-            is_start_with_fp = [np.array_equal(to[:len(fp)], fp) for fp in FP(clique_tree, r, v)]
+            is_start_with_fp = [np.array_equal(to[:len(fp)], fp) for fp in FPs]
             is_forbidden_to = any(is_start_with_fp)
         
         for H in C(UCCG, K):

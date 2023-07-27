@@ -8,7 +8,7 @@ from utils import get_graph_hash
 
 v_func_memo = {}
 
-def v_func(G, r, v, clique_tree, record=lambda x, y: None):
+def v_func(G, r, v, clique_tree):
     try:
         res = v_func_memo[frozenset(v)]
         return res
@@ -18,7 +18,7 @@ def v_func(G, r, v, clique_tree, record=lambda x, y: None):
     K = set(v)
     subproblems = C(G, K)
     
-    results = [count(H, record) for H in subproblems]
+    results = [count(H) for H in subproblems]
     prod = reduce(mul, results) if len(results) > 0 else 1
     
     fps = FP(clique_tree, r, v)
@@ -32,12 +32,10 @@ def v_func(G, r, v, clique_tree, record=lambda x, y: None):
     return res
 
 memo = {}
-def count(G: nx.Graph, record=lambda x, y: None, pool=None):
-    start = time.time()
+# G is a UCCG
+def count(G: nx.Graph, pool=None):
 
     G_hash = get_graph_hash(G)
-
-    record('hash', time.time() - start)
 
     try:
         res = memo[G_hash]
@@ -60,7 +58,6 @@ def count(G: nx.Graph, record=lambda x, y: None, pool=None):
         maximal_cliques = get_maximal_cliques(clique_tree)
 
         r = maximal_cliques[0]
-        record('clique_tree', time.time() - start)
 
         # Divide into subprocesses only at the root
         # if pool != None:
@@ -69,7 +66,7 @@ def count(G: nx.Graph, record=lambda x, y: None, pool=None):
         #     result += sum([r.get() for r in parallel_v_results])
         # else: 
         for v in maximal_cliques:
-            result += v_func(G_sub, r, v, clique_tree, record)
+            result += v_func(G_sub, r, v, clique_tree)
 
         results.append(result)
 

@@ -62,16 +62,14 @@ def get_graph_hash(G: nx.Graph) -> str:
     edges_str = str(sorted_edges)
     hash_object = hashlib.sha256()
     hash_object.update(edges_str.encode())
+    
     return hash_object.hexdigest()
 
 # Works only for undirected
 def get_graph_hash_ig(G: ig.Graph) -> str:
     sorted_edges = sorted([tuple(sorted(edge)) for edge in G.get_edgelist()])
-    
     edges_str = str(sorted_edges)
-
     hash_object = hashlib.sha256()
-
     hash_object.update(edges_str.encode())
 
     return hash_object.hexdigest()

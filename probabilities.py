@@ -6,16 +6,6 @@ from scipy.special import binom
 def N(G: ig.Graph):
     return get_edge_addition_count(G) + G.ecount() +  G.ecount()
 
-def uniform_prior(M: ig.Graph):
-    num_vertices = len(M.vs)
-    num_edges = M.ecount()
-    num_possible_edges = num_vertices * (num_vertices - 1) / 2
-    
-    prior_score = np.log(1.0 / num_possible_edges)
-    prior_score *= num_edges  # Penalize based on the number of edges
-    
-    return prior_score
-
 def P(M: ig.Graph):
     def f(n, G_i_count):    
         return 1 / binom(n - 1, G_i_count)
@@ -33,7 +23,7 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
 
     # Prevent overlow
     if (proposed_score - current_score > 700):
-        exp = 1
+        exp = 10e15
     else:
         exp = np.exp(proposed_score - current_score)
 
