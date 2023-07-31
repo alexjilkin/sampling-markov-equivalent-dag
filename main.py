@@ -27,7 +27,7 @@ def from_file():
         G.add_edges_from(edges)
         start = time.time()
         
-        amo = count(G, record, mp.Pool(mp.cpu_count()))
+        amo = count(G, mp.Pool(mp.cpu_count()))
 
         runtime = time.time() - start
         print(f"|V|={vertex_count}\n#AMO={amo}")

@@ -62,8 +62,18 @@ def get_graph_hash(G: nx.Graph) -> str:
     edges_str = str(sorted_edges)
     hash_object = hashlib.sha256()
     hash_object.update(edges_str.encode())
-    
+
     return hash_object.hexdigest()
+# Get the default color cycle from Matplotlib
+default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+counter = 0
+# Function to get the next color from the default color cycle
+def get_next_color():
+    global counter
+    color = default_colors[counter % len(default_colors)]
+    counter += 1
+    return color
 
 # Works only for undirected
 def get_graph_hash_ig(G: ig.Graph) -> str:

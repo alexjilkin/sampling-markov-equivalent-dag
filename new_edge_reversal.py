@@ -1,55 +1,112 @@
+from functools import reduce
+import random
 import igraph as ig
 import numpy as np
+from utils import plot
+from probabilities import get_local_score, get_scores
 
-def calculate_score(Xi, pi, D):
-    # Replace this stub with your own function that calculates the score of Xi given pi and D
-    return np.random.random()
+def calculate_score(Xi, pi):
+    return get_local_score(Xi, frozenset(pi))
 
-def calculate_partition_Z1(Xn, M):
-    # Replace this stub with your own function that calculates Z1
-    return np.random.random()
+def get_Z1(M:ig.Graph, Xn):
+    scores_dict = get_scores()[Xn]
+    parent_sets = scores_dict.keys()
+    scores = []
 
-def calculate_partition_Z2(Xn, M, Xm):
-    # Replace this stub with your own function that calculates Z2
-    return np.random.random()
+    for parent_set in parent_sets:
+        edges = [(parent, Xn) for parent in parent_set]
+        M.add_edges(edges)
+        if (M.is_dag()):
+            scores.append(scores_dict[parent_set])
+        M.delete_edges(edges)
+    
+    return reduce(np.logaddexp, scores)
+
+def get_Z2(M, Xn, Xm):
+    scores_dict = get_scores()[Xn]
+    parent_sets = scores_dict.keys()
+    parent_sets = list(filter(lambda parent_set: Xm in parent_set, parent_sets))
+    scores = []
+
+    for parent_set in parent_sets:
+        edges = [(parent, Xn) for parent in parent_set]
+        M.add_edges(edges)
+        if (M.is_dag()):
+            scores.append(scores_dict[parent_set])
+
+        M.delete_edges(edges)
+    return reduce(np.logaddexp, scores)
 
 def orphan_nodes(M, nodes):
-    M.delete_edges([(node, neighbor) for node in nodes for neighbor in M.neighbors(node, mode="in")])
-    
-def new_edge_reversal_move(M, D):
-    edge = np.random.choice(M.es)  # Randomly select one edge
-    Xi, Xj = edge.tuple  # Get the source and target of the edge
-
-    # First step: Orphan nodes Xi and Xj
-    orphan_nodes(M, [Xi, Xj])
     M_prime = M.copy()
+    for node in nodes:
+        M_prime.delete_edges([(parent, node) for parent in M.predecessors(node)])
 
-    # Second step: Sample a new parent set for Xi which contains Xj and does not lead to any directed cycles
-    parents_Xi = [Xj] + list(np.random.choice([n for n in range(M.vcount()) if n not in [Xi, Xj]], size=2, replace=False))
-    for parent in parents_Xi:
-        M_prime.add_edge(parent, Xi)
+    return M_prime
 
-    # Calculate Q for Xi
-    numerator = np.exp(calculate_score(Xi, parents_Xi, D)) * int(M_prime.is_dag())
-    denominator = calculate_partition_Z2(Xi, M, Xj)
-    Q_Xi = numerator / denominator
+def I(pa, Xj):
+    return Xj in pa
 
-    # Third step: Sample a new parent set for Xj
-    parents_Xj = list(np.random.choice([n for n in range(M.vcount()) if n not in [Xi, Xj]], size=2, replace=False))
-    for parent in parents_Xj:
-        M_prime.add_edge(parent, Xj)
+def delta(M, X, pas):
+    edges = [(pa, X) for pa in pas]
 
-    # Calculate Q for Xj
-    numerator = np.exp(calculate_score(Xj, parents_Xj, D)) * int(M_prime.is_dag())
-    denominator = calculate_partition_Z1(Xj, M)
-    Q_Xj = numerator / denominator
+    M.add_edges(edges)
+    is_dag = M.is_dag()
+    M.delete_edges(edges)
 
-    Q_M_prime_given_M = 1 / M.ecount() * Q_Xi * Q_Xj  # The proposal probability
+    return is_dag
 
-    return M_prime if np.random.random() < Q_M_prime_given_M else M  # Return the new graph if the move is accepted
+def new_edge_reversal_move(G: ig.Graph):
+    M = G.copy()
+    if (len(M.es) < 2):
+        return G
+    
+    edge = np.random.choice(M.es)  # Randomly select one edge
+    Xi, Xj = edge.tuple 
 
-# Test the function
-M = ig.Graph([(0, 1), (1, 2), (2, 3)])
-D = []  # Replace this with your actual data
-M_prime = new_edge_reversal_move(M, D)
-print(M_prime)
+    M_prime = orphan_nodes(M, [Xi, Xj])
+
+    # Second step, sample parent set for Xi
+    parent_sets = get_scores()[Xi].keys()
+    parent_sets = list(filter(lambda parent_set: I(parent_set, Xj) and delta(M_prime, Xi, parent_set), parent_sets))
+
+    Z2_i = get_Z2(M_prime, Xi, Xj)
+    Q_i_p = np.array([calculate_score(Xi, parent_set) - Z2_i for parent_set in parent_sets])
+
+    # Normalize probability
+    max_prob = np.max(Q_i_p)
+    Q_i_p_norm = np.exp(Q_i_p - max_prob)
+    Q_i_p_norm /= np.sum(np.sort((Q_i_p_norm)))
+
+    new_pi = np.random.choice(parent_sets, p=Q_i_p_norm)
+    M_plus = M_prime.copy()
+    edges = [(parent, Xi) for parent in new_pi]
+    M_plus.add_edges(edges)
+
+    # Third step, sample patern set pj
+    parent_sets = get_scores()[Xj].keys()
+    parent_sets = list(filter(lambda parent_set: delta(M_plus, Xj, parent_set), parent_sets))
+
+    Z1_j = get_Z1(M_plus, Xj)
+    Q_j_p = np.array([calculate_score(Xj, parent_set) - Z1_j for parent_set in parent_sets])
+    max_prob = np.max(Q_j_p)
+    Q_j_p_norm = np.exp(Q_j_p - max_prob)
+    Q_j_p_norm /= np.sum(np.sort(Q_j_p_norm))
+
+    new_pj = np.random.choice(parent_sets, p=Q_j_p_norm)
+    M_tilda = M_plus.copy()
+    edges = [(parent, Xj) for parent in new_pj]
+    M_tilda.add_edges(edges)
+
+    if (np.random.uniform() < A(M, M_tilda, M_prime, Xi, Xj, Z2_i, Z1_j)):
+        return M_tilda
+    
+    return G
+
+def A(M, M_tilda, M_prime, Xi, Xj, Z2_i, Z1_j):
+    first = (len(M.es) / len(M_tilda.es))
+    second = (Z2_i - get_Z2(M_prime, Xj, Xi))
+    third = Z1_j - get_Z1(orphan_nodes(M, [Xi]), Xi)
+
+    res = first * np.exp(second + third)
+    return np.min([1,  res ])

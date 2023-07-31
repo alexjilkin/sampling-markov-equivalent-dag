@@ -23,7 +23,7 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
 
     # Prevent overlow
     if (proposed_score - current_score > 700):
-        exp = 10e15
+        exp = 1
     else:
         exp = np.exp(proposed_score - current_score)
 
@@ -50,21 +50,22 @@ def init_scores(name):
 def get_scores():
     return scores
 
+def get_local_score(v, pi):
+    # Adjust from 0 to 1 counting system, boston starts from 1 but child-5000 starts from 0
+   
+    try:
+        res = scores[v][pi]
+    except KeyError:
+        res = -np.inf
+
+    return res
+
 def score(G: ig.Graph):
     score = 0
-    
-    def get_local_score(node):
-        # Adjust from 0 to 1 counting system, boston starts from 1 but child-5000 starts from 0
-        parents = frozenset(map(lambda x: x, G.predecessors(node)))
-        
-        try:
-            res = scores[node.index][parents]
-        except KeyError:
-            res = -np.inf
-        return res
         
     for v in G.vs:
-        local_score = get_local_score(v)
+        pi = frozenset(map(lambda x: x, G.predecessors(v)))
+        local_score = get_local_score(v.index, pi)
         
         # If it is inf, just return
         if (local_score == -np.inf):

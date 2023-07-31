@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 from count import C, FP, count, get_maximal_cliques, v_func
 from utils import plot
+import matplotlib.pyplot as plt
 # from cdt.metrics import get_CPDAG
 
 # U is a the essential graph with only the undirected edges
@@ -15,6 +16,9 @@ def get_markov_equivalent_topological_orders(U: nx.Graph):
         clique_tree = nx.junction_tree(UCCG)
         maximal_cliques = get_maximal_cliques(clique_tree)
         r = maximal_cliques[0]
+
+        if (len(maximal_cliques) == 1 and len(maximal_cliques[0]) == 1):
+            return r
 
         # Maximal clique drawn with probability proportional to v_func
         p = list(map(lambda v: v_func(UCCG, r, v, clique_tree) / AMO, maximal_cliques))
@@ -85,7 +89,6 @@ def get_markov_equivalent(G: ig.Graph) -> ig.Graph:
     equivalent_G.add_vertices(len(G.vs))
 
     for to in tos:
-        
         for (source, target) in U.edges:
             if (source not in to or target not in to):
                 continue
@@ -100,6 +103,32 @@ def get_markov_equivalent(G: ig.Graph) -> ig.Graph:
 
     return equivalent_G, AMOs
 
+# Gets many topological orders and plots a bar plot of it's occurrences
+def test_top_orders_distribution(G):
+    essential_g = CPDAG(G)
+    U = nx.Graph()
+    U.add_nodes_from(np.arange(len(G.vs)))
+
+    for e in essential_g.es:
+        U.add_edge(e.source, e.target)
+    all_tos = []
+    for i in range(10000):
+        tos, AMOs = get_markov_equivalent_topological_orders(U)
+        all_tos.append(tos)
+    all_tos = list(map(lambda tos: tuple(item for t in tos for item in t), all_tos))
+    all_tos = list(map(lambda tos: ''.join(str(item) for item in tos), all_tos))
+
+    data = {}
+    for to in all_tos:
+        if to not in data:
+            data[to] = 0
+        data[to] += 1
+
+    print(len(data))
+    print(AMOs)
+    plt.bar(list(data.keys()), list(data.values()))
+    plt.show()
+   
 def is_strongly_protected(G: ig.Graph, G_lines: ig.Graph, e: ig.Edge):
     a, b = e.source, e.target
 
