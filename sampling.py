@@ -41,21 +41,16 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
         proposed_score = score(G_i_plus_1)
 
         is_changed = False    
-        # if (step_type == 'REV'):
-        #     is_changed = True
-        #     print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
-        #     G_i = G_i_plus_1    
-        if (step_type):
+        if (step_type == 'REV'):
+            is_changed = True
+            print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
+            G_i = G_i_plus_1    
+        elif (step_type):
             A = np.min([1, R(G_i, G_i_plus_1)]) 
             if (np.random.uniform() <= A):
                 is_changed = True
                 print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
                 G_i = G_i_plus_1
-
-        if not is_changed and is_markov_equivalent and np.random.uniform() < markov_prob:
-            G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
-            print(f'{i} {current_score:.2f} {score(G_i_plus_1):.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, equiv')
-            G_i = G_i_plus_1
 
         steps.append((G_i, current_score))
     return steps, count_equivalence_classes(steps)
@@ -64,11 +59,12 @@ def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV):
     a, b = random.sample(list(G_i.vs), k=2)
     G_i_plus_1 = G_i.copy()
 
-    # if is_markov_equivalent and np.random.uniform() < markov_prob:
-    #     G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
-    #     return G_i_plus_1, 'equiv'
-    if (is_REV and np.random.uniform() < 0.03):
-        return new_edge_reversal_move(G_i_plus_1), 'REV'
+    if (is_REV and np.random.uniform() < 0.06):
+        return new_edge_reversal_move(G_i_plus_1)
+    if is_markov_equivalent and np.random.uniform() < markov_prob:
+        G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
+        return G_i_plus_1, 'equiv'
+    
     if (G_i.are_connected(a, b)):
         G_i_plus_1.delete_edges([(a,b)])
         return G_i_plus_1, 'remove'

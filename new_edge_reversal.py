@@ -59,7 +59,7 @@ def delta(M, X, pas):
 def new_edge_reversal_move(G: ig.Graph):
     M = G.copy()
     if (len(M.es) < 2):
-        return G
+        return G, False
     
     edge = np.random.choice(M.es)  # Randomly select one edge
     Xi, Xj = edge.tuple 
@@ -76,7 +76,7 @@ def new_edge_reversal_move(G: ig.Graph):
     # Normalize probability
     max_prob = np.max(Q_i_p)
     Q_i_p_norm = np.exp(Q_i_p - max_prob)
-    Q_i_p_norm /= np.sum(np.sort((Q_i_p_norm)))
+    Q_i_p_norm /= np.sum(Q_i_p_norm)
 
     new_pi = np.random.choice(parent_sets, p=Q_i_p_norm)
     M_plus = M_prime.copy()
@@ -91,7 +91,7 @@ def new_edge_reversal_move(G: ig.Graph):
     Q_j_p = np.array([calculate_score(Xj, parent_set) - Z1_j for parent_set in parent_sets])
     max_prob = np.max(Q_j_p)
     Q_j_p_norm = np.exp(Q_j_p - max_prob)
-    Q_j_p_norm /= np.sum(np.sort(Q_j_p_norm))
+    Q_j_p_norm /= np.sum(Q_j_p_norm)
 
     new_pj = np.random.choice(parent_sets, p=Q_j_p_norm)
     M_tilda = M_plus.copy()
@@ -99,13 +99,13 @@ def new_edge_reversal_move(G: ig.Graph):
     M_tilda.add_edges(edges)
 
     if (np.random.uniform() < A(M, M_tilda, M_prime, Xi, Xj, Z2_i, Z1_j)):
-        return M_tilda
+        return M_tilda, 'REV'
     
-    return G
+    return G, False
 
 def A(M, M_tilda, M_prime, Xi, Xj, Z2_i, Z1_j):
     first = (len(M.es) / len(M_tilda.es))
-    second = (Z2_i - get_Z2(M_prime, Xj, Xi))
+    second = Z2_i - get_Z2(M_prime, Xj, Xi)
     third = Z1_j - get_Z1(orphan_nodes(M, [Xi]), Xi)
 
     res = first * np.exp(second + third)

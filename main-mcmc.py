@@ -13,7 +13,7 @@ def test_count_equivalences():
     markov_prob = 0.1
     init_scores(score_name)
 
-    ns = np.arange(10000, 20000, 5000)
+    ns = np.arange(10000, 21000, 5000)
 
     markov_rev_classes_means = []
     classes_means = []
@@ -27,7 +27,7 @@ def test_count_equivalences():
         markov_rev_equivalence_classes = []
         simple_equivalence_classes = []
 
-        for i in range(3):
+        for i in range(4):
             steps, equivalence_classes = sample(G, n, True, markov_prob, True)
             print(f'Classes visited with equivalence and REV step: {len(equivalence_classes)}, n={n}')
             markov_rev_equivalence_classes.append(equivalence_classes)
@@ -59,21 +59,21 @@ def test_count_equivalences():
 
 def test_convergence():
     score_name = 'hepar2-500'
-    markov_prob = 0.1
+    markov_prob = 0.2
     init_scores(score_name)
 
-    n = 20000
+    n = 15000
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
 
-    for _ in range(3):   
+    for _ in range(2):
         steps, equivalence_classes = sample(G, n, True, markov_prob, True)
-        print(f'Classes visited with equivalence step: {len(equivalence_classes)}, n={n}')
+        print(f'Classes visited with REV and equivalence step: {len(equivalence_classes)}, n={n}')
         scores = [step[1] for step in steps]
         plt.plot(np.arange(len(scores)), scores, 'g--')
 
         steps, equivalence_classes = sample(G, n, False, markov_prob, True)
-        print(f'Classes visited with equivalence step: {len(equivalence_classes)}, n={n}')
+        print(f'Classes visited with REV step: {len(equivalence_classes)}, n={n}')
         scores = [step[1] for step in steps]
         plt.plot(np.arange(len(scores)), scores, 'b--')
 
