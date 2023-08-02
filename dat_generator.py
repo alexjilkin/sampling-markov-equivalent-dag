@@ -3,7 +3,7 @@ from pgmpy.sampling import BayesianModelSampling
 import pandas as pd
 
 # Load the .bif file
-network_name = 'win95pts'
+network_name = 'hepar2'
 reader = BIFReader(f'./data/networks/{network_name}.bif')
 sample_size = 500
 
