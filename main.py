@@ -16,7 +16,7 @@ def from_file():
         start = time.time()
 
         # file = open('./data/sample.gr', 'r')
-        file = open(f"./data/{graph_type}/n={vertex_count}.gr", 'r')
+        file = open(f"./data/graphs/{graph_type}/n={vertex_count}.gr", 'r')
         G = nx.Graph()
         lines = [tuple(map(int, line.strip().split(" "))) for line in file.readlines()]
         nodes_count = lines[0][0]
