@@ -34,7 +34,6 @@ def v_func(G, r, v, clique_tree):
 memo = {}
 # G is a UCCG
 def count(G: nx.Graph, pool=None):
-
     G_hash = get_graph_hash(G)
 
     try:
@@ -50,7 +49,6 @@ def count(G: nx.Graph, pool=None):
     # For each subgraph, count the AMOs and return the product
     for G_sub in G_subs:
         result = 0
-        start = time.time()
         clique_tree = nx.junction_tree(G_sub)
 
         # clique_tree = maximal_clique_tree(G)
@@ -137,7 +135,7 @@ def maximal_clique_tree(G: nx.Graph):
 
 # C_G(K) - algorithm 4
 def C(G: nx.Graph, K: set):
-    S = [K, set(G.nodes) - K]
+    S = [K.copy(), set(G.nodes) - K]
 
     to = []
     L = set()
