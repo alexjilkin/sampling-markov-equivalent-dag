@@ -48,7 +48,7 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
         elif (step_type):
             A = np.min([1, R(G_i, G_i_plus_1)]) 
             if (np.random.uniform() <= A):
-                print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
+                # print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
                 G_i = G_i_plus_1
 
         steps.append((G_i, current_score))

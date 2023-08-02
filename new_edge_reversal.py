@@ -68,7 +68,9 @@ def new_edge_reversal_move(G: ig.Graph):
 
     # Second step, sample parent set for Xi
     parent_sets = get_scores()[Xi].keys()
-    parent_sets = list(filter(lambda parent_set: I(parent_set, Xj) and delta(M_prime, Xi, parent_set), parent_sets))
+
+    descendants = set(M_prime.subcomponent(Xi, mode="out")) - set({Xi})
+    parent_sets = list(filter(lambda parent_set: I(parent_set, Xj) and len(parent_set & descendants) == 0, parent_sets))
 
     Z2_i = get_Z2(M_prime, Xi, Xj)
     Q_i_p = np.array([calculate_score(Xi, parent_set) - Z2_i for parent_set in parent_sets])
@@ -85,7 +87,8 @@ def new_edge_reversal_move(G: ig.Graph):
 
     # Third step, sample patern set pj
     parent_sets = get_scores()[Xj].keys()
-    parent_sets = list(filter(lambda parent_set: delta(M_plus, Xj, parent_set), parent_sets))
+    descendants = set(M_plus.subcomponent(Xj, mode="out")) - set({Xj})
+    parent_sets = list(filter(lambda parent_set: len(parent_set & descendants) == 0, parent_sets))
 
     Z1_j = get_Z1(M_plus, Xj)
     Q_j_p = np.array([calculate_score(Xj, parent_set) - Z1_j for parent_set in parent_sets])
