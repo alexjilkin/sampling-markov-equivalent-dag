@@ -73,7 +73,7 @@ def get_markov_equivalent(G: ig.Graph) -> ig.Graph:
     #     if essential_g_l.has_edge(target, source):
     #         U_l.add_edge(source, target)
 
-    essential_g = CPDAG(G)
+    essential_g, _ = CPDAG(G)
     U = nx.Graph()
     U.add_nodes_from(np.arange(len(G.vs)))
 
@@ -105,7 +105,7 @@ def get_markov_equivalent(G: ig.Graph) -> ig.Graph:
 
 # Gets many topological orders and plots a bar plot of it's occurrences
 def test_top_orders_distribution(G):
-    essential_g = CPDAG(G)
+    essential_g, _ = CPDAG(G)
     U = nx.Graph()
     U.add_nodes_from(np.arange(len(G.vs)))
 
@@ -162,7 +162,8 @@ def is_strongly_protected(G: ig.Graph, G_lines: ig.Graph, e: ig.Edge):
     return False
 
 
-def CPDAG(D: ig.Graph):
+# Returns a tuple (undirected, directed) graphs
+def CPDAG(D: ig.Graph) -> (ig.Graph, ig.Graph):
     G_i = D.copy()
     G_lines = ig.Graph()
     G_lines.add_vertices(len(G_i.vs))
@@ -173,7 +174,7 @@ def CPDAG(D: ig.Graph):
         G_i = G_i_plus_1.copy()     
         G_i_plus_1 = undirect_non_strongly_protected_arrows(G_i, G_lines)
 
-    return G_lines
+    return G_lines, G_i_plus_1
 
 def undirect_non_strongly_protected_arrows(G: ig.Graph, G_lines: ig.Graph):
     new_G = G.copy()

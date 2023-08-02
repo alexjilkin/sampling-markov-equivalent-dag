@@ -19,8 +19,8 @@ def propose_markov_equivalent(G: ig.Graph) -> ig.Graph:
 def count_equivalence_classes(steps):
     equivalence_classes_dict = {}
     for G, _ in steps:
-        G_cpdag = CPDAG(G)
-        G_cpdag_hash = get_graph_hash_ig(G_cpdag)
+        CPDAG_undirected, CPDAG_directed = CPDAG(G)
+        G_cpdag_hash = get_graph_hash_ig(CPDAG_undirected) + get_graph_hash_ig(CPDAG_directed)
         if G_cpdag_hash not in equivalence_classes_dict:
             equivalence_classes_dict[G_cpdag_hash] = 0
 
@@ -35,6 +35,7 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
     AMOs = ''
     
     for i in range(int(size)):
+        # Maybe remove i > 100
         G_i_plus_1, step_type = propose_next(G_i, is_markov_equivalent, markov_prob, i > 100 and is_REV)       
 
         current_score = score(G_i)
@@ -42,13 +43,11 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
 
         is_changed = False    
         if (step_type == 'REV'):
-            is_changed = True
             print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
             G_i = G_i_plus_1    
         elif (step_type):
             A = np.min([1, R(G_i, G_i_plus_1)]) 
             if (np.random.uniform() <= A):
-                is_changed = True
                 print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
                 G_i = G_i_plus_1
 

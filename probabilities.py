@@ -29,7 +29,7 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
 
     # res = exp * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
     # res = exp * (P(M_i_plus_1) / P(M_i))
-    return exp  * (P(M_i_plus_1) / P(M_i)) 
+    return exp 
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_addition_count(G: ig.Graph):
@@ -73,4 +73,4 @@ def score(G: ig.Graph):
         
         score += local_score
 
-    return score
+    return score + np.log(P(G))
