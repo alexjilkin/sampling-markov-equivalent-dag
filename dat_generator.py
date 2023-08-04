@@ -5,7 +5,7 @@ import pandas as pd
 # Load the .bif file
 network_name = 'hepar2'
 reader = BIFReader(f'./data/networks/{network_name}.bif')
-sample_size = 500
+sample_size = 1000
 
 model = reader.get_model()
 

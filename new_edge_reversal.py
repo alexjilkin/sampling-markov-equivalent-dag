@@ -5,37 +5,32 @@ import numpy as np
 from utils import plot
 from probabilities import get_local_score, get_scores
 
-def calculate_score(Xi, pi):
+def parent_set_score(Xi, pi):
     return get_local_score(Xi, frozenset(pi))
 
-def get_Z1(M:ig.Graph, Xn):
-    scores_dict = get_scores()[Xn]
-    parent_sets = scores_dict.keys()
-    scores = []
-
-    for parent_set in parent_sets:
-        edges = [(parent, Xn) for parent in parent_set]
-        M.add_edges(edges)
-        if (M.is_dag()):
-            scores.append(scores_dict[parent_set])
-        M.delete_edges(edges)
+# Calculates Z (18) returns 
+def get_Z1(M:ig.Graph, X) -> (int, list[set]):
+    parent_sets = get_scores()[X].keys()
     
+    # Checks the descendants to find cycles
+    descendants = set(M.subcomponent(X, mode="out")) - set({X})
+    parent_sets = list(filter(lambda parent_set: len(parent_set & descendants) == 0, parent_sets))
+
+    return sum_scores(X, parent_sets), parent_sets
+
+def sum_scores(X, parent_sets):
+    scores_dict = get_scores()[X]
+    scores = [scores_dict[pa] for pa in parent_sets]
     return reduce(np.logaddexp, scores)
 
-def get_Z2(M, Xn, Xm):
-    scores_dict = get_scores()[Xn]
-    parent_sets = scores_dict.keys()
-    parent_sets = list(filter(lambda parent_set: Xm in parent_set, parent_sets))
-    scores = []
+# Calculates Z (19)
+def get_Z2(M, Xn, Xm) -> (int, list[set]):
+    parent_sets = get_scores()[Xn].keys()
+    # Checks the descendants to find cycles
+    descendants = set(M.subcomponent(Xn, mode="out")) - set({Xn})
+    parent_sets = list(filter(lambda parent_set: I(parent_set, Xm) and len(parent_set & descendants) == 0, parent_sets))
 
-    for parent_set in parent_sets:
-        edges = [(parent, Xn) for parent in parent_set]
-        M.add_edges(edges)
-        if (M.is_dag()):
-            scores.append(scores_dict[parent_set])
-
-        M.delete_edges(edges)
-    return reduce(np.logaddexp, scores)
+    return sum_scores(Xn, parent_sets), parent_sets
 
 def orphan_nodes(M, nodes):
     M_prime = M.copy()
@@ -47,33 +42,19 @@ def orphan_nodes(M, nodes):
 def I(pa, Xj):
     return Xj in pa
 
-def delta(M, X, pas):
-    edges = [(pa, X) for pa in pas]
-
-    M.add_edges(edges)
-    is_dag = M.is_dag()
-    M.delete_edges(edges)
-
-    return is_dag
-
 def new_edge_reversal_move(G: ig.Graph):
     M = G.copy()
     if (len(M.es) < 2):
         return G, False
     
-    edge = np.random.choice(M.es)  # Randomly select one edge
+    edge = np.random.choice(M.es) 
     Xi, Xj = edge.tuple 
 
     M_prime = orphan_nodes(M, [Xi, Xj])
 
-    # Second step, sample parent set for Xi
-    parent_sets = get_scores()[Xi].keys()
-
-    descendants = set(M_prime.subcomponent(Xi, mode="out")) - set({Xi})
-    parent_sets = list(filter(lambda parent_set: I(parent_set, Xj) and len(parent_set & descendants) == 0, parent_sets))
-
-    Z2_i = get_Z2(M_prime, Xi, Xj)
-    Q_i_p = np.array([calculate_score(Xi, parent_set) - Z2_i for parent_set in parent_sets])
+    ## Second step, sample parent set for Xi ##
+    Z2_i, parent_sets = get_Z2(M_prime, Xi, Xj)
+    Q_i_p = np.array([parent_set_score(Xi, parent_set) - Z2_i for parent_set in parent_sets])
 
     # Normalize probability
     max_prob = np.max(Q_i_p)
@@ -85,13 +66,9 @@ def new_edge_reversal_move(G: ig.Graph):
     edges = [(parent, Xi) for parent in new_pi]
     M_plus.add_edges(edges)
 
-    # Third step, sample patern set pj
-    parent_sets = get_scores()[Xj].keys()
-    descendants = set(M_plus.subcomponent(Xj, mode="out")) - set({Xj})
-    parent_sets = list(filter(lambda parent_set: len(parent_set & descendants) == 0, parent_sets))
-
-    Z1_j = get_Z1(M_plus, Xj)
-    Q_j_p = np.array([calculate_score(Xj, parent_set) - Z1_j for parent_set in parent_sets])
+    ## Third step, sample patern set pj ##
+    Z1_j, parent_sets = get_Z1(M_plus, Xj)
+    Q_j_p = np.array([parent_set_score(Xj, parent_set) - Z1_j for parent_set in parent_sets])
     max_prob = np.max(Q_j_p)
     Q_j_p_norm = np.exp(Q_j_p - max_prob)
     Q_j_p_norm /= np.sum(Q_j_p_norm)
@@ -106,10 +83,12 @@ def new_edge_reversal_move(G: ig.Graph):
     
     return G, False
 
+# Acceptance rate
 def A(M, M_tilda, M_prime, Xi, Xj, Z2_i, Z1_j):
     first = (len(M.es) / len(M_tilda.es))
-    second = Z2_i - get_Z2(M_prime, Xj, Xi)
-    third = Z1_j - get_Z1(orphan_nodes(M, [Xi]), Xi)
+    second = Z2_i - get_Z2(M_prime, Xj, Xi)[0]
 
-    res = first * np.exp(second + third)
-    return np.min([1,  res ])
+    M_tilda_plus = orphan_nodes(M, [Xi])
+    third = Z1_j - get_Z1(M_tilda_plus, Xi)[0]
+
+    return np.min([1, first * np.exp(second + third)])
