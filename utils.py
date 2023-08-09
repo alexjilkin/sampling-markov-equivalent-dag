@@ -98,8 +98,8 @@ def plot(G, title=""):
     plt.show()
 
 def get_es_diff(G1: ig.Graph, G2: ig.Graph):
-    G1_set = set(map(lambda e: (e.source, e.target), G1.es))
-    G2_set = set(map(lambda e: (e.source, e.target), G2.es))
+    G1_set = {e.tuple for e in G1.es}
+    G2_set = {e.tuple for e in G2.es}
 
     both = G1_set.intersection(G2_set)
     return (G1_set - both).union(G2_set - both)

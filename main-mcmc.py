@@ -9,11 +9,11 @@ from utils import get_next_color, plot, seed
 
 
 def test_count_equivalences():
-    score_name = 'hepar2-500'
-    markov_prob = 0.2
-    init_scores(score_name)
+    score_name = 'hailfinder-100'
+    markov_prob = 0.1
 
-    ns = np.arange(10000, 100000, 10000)
+    init_scores(score_name)
+    ns = np.arange(10000, 200001, 30000)
 
     markov_rev_classes_means = []
     classes_means = []
@@ -27,7 +27,7 @@ def test_count_equivalences():
         markov_rev_equivalence_classes = []
         simple_equivalence_classes = []
 
-        for i in range(5):
+        for i in range(7):
             steps, equivalence_classes = sample(G, n, True, markov_prob, False)
             print(f'Classes visited with equivalence and REV step: {len(equivalence_classes)}, n={sum(equivalence_classes.values())}')
             markov_rev_equivalence_classes.append(equivalence_classes)
@@ -58,31 +58,31 @@ def test_count_equivalences():
     plt.show()
 
 def test_convergence():
-    score_name = 'alarm-100'
+    score_name = 'water-1000'
     markov_prob = 0.2
     init_scores(score_name)
 
-    n = 6000
+    n = 20000
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
 
-    for _ in range(2):
-        # steps, equivalence_classes = sample(G, n, True, markov_prob, False)
-        # print(f'Classes visited with equivalence and REV step: {len(equivalence_classes)}, n={n}')
-        # scores = [step[1] for step in steps]
-        # plt.plot(np.arange(len(scores)), scores, 'g--')
+    for _ in range(3):
+        steps, equivalence_classes = sample(G, n, True, markov_prob, False)
+        print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
+        scores = [step[1] for step in steps]
+        plt.plot(np.arange(len(scores)), scores, 'b--')
 
         steps, equivalence_classes = sample(G, n, False, markov_prob, True)
         print(f'Classes visited with REV step: {len(equivalence_classes)}, n={n}')
         scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores, 'b--')
+        plt.plot(np.arange(len(scores)), scores, 'g--')
 
         steps, equivalence_classes = sample(G, n)
         print(f'Classes visited: {len(equivalence_classes)} n={n}')
         scores = [step[1] for step in steps]
         plt.plot(np.arange(len(scores)), scores ,  'r-')
 
-    plt.title(score_name)
+    plt.title(f'{score_name}')
     plt.show()
 
 test_convergence()

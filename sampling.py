@@ -1,7 +1,7 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from markov_equivalent import CPDAG, get_markov_equivalent, test_top_orders_distribution
+from markov_equivalent import CPDAG, get_markov_equivalent, is_strongly_protected, test_top_orders_distribution
 from new_edge_reversal import new_edge_reversal_move
 # from new_edge_reversal import new_edge_reversal_move
 from utils import get_es_diff, get_graph_hash_ig, plot
@@ -35,7 +35,8 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
     AMOs = ''
     
     for i in range(int(size)):
-        # Maybe remove i > 100
+        if is_markov_equivalent:
+            G_i, AMOs = propose_markov_equivalent(G_i)
         G_i_plus_1, step_type = propose_next(G_i, is_markov_equivalent, markov_prob, is_REV)       
 
         current_score = score(G_i)
@@ -53,15 +54,23 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
         steps.append((G_i, current_score))
     return steps, count_equivalence_classes(steps)
 
-def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV):
+def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV, is_protected_edge_reversal = False):
     a, b = random.sample(list(G_i.vs), k=2)
     G_i_plus_1 = G_i.copy()
 
-    if (is_REV and np.random.uniform() < 0.06):
+    if (is_REV and np.random.uniform() < 0.066):
         return new_edge_reversal_move(G_i_plus_1)
+    if (is_protected_edge_reversal and np.random.uniform() < 0.):
+        G_i_plus_1 = propose_protected_reverse(G_i)
+
+        if (G_i_plus_1.is_dag()):
+            return G_i_plus_1, 'protected reversal'
+        else:
+            return G_i, False
+
     if is_markov_equivalent and np.random.uniform() < markov_prob:
         G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
-        return G_i_plus_1, 'equiv'
+        return G_i_plus_1, 'Markov equivalent'
     
     if (G_i.are_connected(a, b)):
         G_i_plus_1.delete_edges([(a,b)])
@@ -78,3 +87,18 @@ def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV):
             return G_i_plus_1, 'add'
     
     return G_i, False
+
+def propose_protected_reverse(G_i: ig.Graph):
+    empty_G = ig.Graph()
+    G_i_plus_1 = G_i.copy()
+    protected_edges = [e for e in G_i.es if is_strongly_protected(G_i, empty_G, e)]
+    
+    if (len(protected_edges) == 0):
+        return G_i
+    a, b = random.choice(protected_edges).tuple
+
+    G_i_plus_1.delete_edges([(a, b)])
+    G_i_plus_1.add_edges([(b, a)])
+
+    
+    return G_i_plus_1

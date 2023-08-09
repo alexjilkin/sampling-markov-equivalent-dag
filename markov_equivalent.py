@@ -150,12 +150,16 @@ def is_strongly_protected(G: ig.Graph, G_lines: ig.Graph, e: ig.Edge):
         if (c != a and G.are_connected(a, c)):
             return True
     # d
-    a_lines_neighbors = list(G_lines.neighbors(a))
+    
     a_neighbors = list(G.neighbors(a))
-    for c1, c2 in itertools.combinations(a_lines_neighbors, 2):
+    for c1, c2 in itertools.combinations(a_neighbors, 2):
         if (G.are_connected(c1, b) and G.are_connected(c2, b)):
             return True
-    for c1, c2 in itertools.combinations(a_neighbors, 2):
+    
+    if (len(G_lines.es) == 0):
+        return False
+    a_lines_neighbors = list(G_lines.neighbors(a))
+    for c1, c2 in itertools.combinations(a_lines_neighbors, 2):
         if (G.are_connected(c1, b) and G.are_connected(c2, b)):
             return True
         
@@ -176,7 +180,7 @@ def CPDAG(D: ig.Graph) -> (ig.Graph, ig.Graph):
 
     return G_lines, G_i_plus_1
 
-def undirect_non_strongly_protected_arrows(G: ig.Graph, G_lines: ig.Graph):
+def undirect_non_strongly_protected_arrows(G: ig.Graph, G_lines: ig.Graph) -> ig.Graph:
     new_G = G.copy()
 
     for e in G.es:
