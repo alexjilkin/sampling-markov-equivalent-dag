@@ -62,15 +62,15 @@ def test_convergence():
     markov_prob = 0.2
     init_scores(score_name)
 
-    n = 20000
+    n = 10000
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
 
-    for _ in range(3):
-        steps, equivalence_classes = sample(G, n, True, markov_prob, False)
-        print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
-        scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores, 'b--')
+    for _ in range(2):
+        # steps, equivalence_classes = sample(G, n, True, markov_prob, False)
+        # print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
+        # scores = [step[1] for step in steps]
+        # plt.plot(np.arange(len(scores)), scores, 'b--')
 
         steps, equivalence_classes = sample(G, n, False, markov_prob, True)
         print(f'Classes visited with REV step: {len(equivalence_classes)}, n={n}')

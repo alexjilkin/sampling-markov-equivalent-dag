@@ -29,9 +29,9 @@ def count_equivalence_classes(steps):
 
 # G is a UCCG
 def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, is_REV=False):
-    G_i = G.copy()
+    G_i: ig.Graph = G.copy()
 
-    steps = []
+    steps: list[tuple(ig.Graph, float)] = []
     AMOs = ''
     
     for i in range(int(size)):
@@ -56,7 +56,7 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
 
 def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV, is_protected_edge_reversal = False):
     a, b = random.sample(list(G_i.vs), k=2)
-    G_i_plus_1 = G_i.copy()
+    G_i_plus_1: ig.Graph = G_i.copy()
 
     if (is_REV and np.random.uniform() < 0.066):
         return new_edge_reversal_move(G_i_plus_1)
@@ -90,7 +90,7 @@ def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV, is_pr
 
 def propose_protected_reverse(G_i: ig.Graph):
     empty_G = ig.Graph()
-    G_i_plus_1 = G_i.copy()
+    G_i_plus_1: ig.Graph = G_i.copy()
     protected_edges = [e for e in G_i.es if is_strongly_protected(G_i, empty_G, e)]
     
     if (len(protected_edges) == 0):

@@ -168,7 +168,7 @@ def is_strongly_protected(G: ig.Graph, G_lines: ig.Graph, e: ig.Edge):
 
 # Returns a tuple (undirected, directed) graphs
 def CPDAG(D: ig.Graph) -> (ig.Graph, ig.Graph):
-    G_i = D.copy()
+    G_i: ig.Graph() = D.copy()
     G_lines = ig.Graph()
     G_lines.add_vertices(len(G_i.vs))
     
@@ -181,7 +181,7 @@ def CPDAG(D: ig.Graph) -> (ig.Graph, ig.Graph):
     return G_lines, G_i_plus_1
 
 def undirect_non_strongly_protected_arrows(G: ig.Graph, G_lines: ig.Graph) -> ig.Graph:
-    new_G = G.copy()
+    new_G: ig.Graph() = G.copy()
 
     for e in G.es:
         if not is_strongly_protected(G, G_lines, e):

@@ -26,21 +26,6 @@ def read_graph_from_file(filename, random_weights=False):
 
     return G
 
-# def random_dag(G: ig.Graph) -> ig.Graph:
-#     new_G = G.copy()
-
-#     for i in range(25):
-#         vertices = list(new_G.vs)
-    
-#         a, b = random.sample(vertices, k=2)
-#         if not new_G.are_connected(b, a) and not new_G.are_connected(a, b):
-#             new_G.add_edge(a, b)
-
-#     if(new_G.is_dag() and score(new_G) != -np.inf):
-#         return new_G
-#     else:
-#         return random_dag(G)
-
 def read_scores_from_file(filename):
     scores = {}
 
