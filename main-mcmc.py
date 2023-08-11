@@ -5,7 +5,7 @@ import numpy as np
 
 from probabilities import get_scores, init_scores, score
 from sampling import sample
-from utils import get_next_color, plot, seed
+from utils import plot, seed
 
 
 def test_count_equivalences():
@@ -58,16 +58,16 @@ def test_count_equivalences():
     plt.show()
 
 def test_convergence():
-    score_name = 'water-1000'
+    score_name = 'asia'
     markov_prob = 0.2
     init_scores(score_name)
 
-    n = 10000
+    n = 1000
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
 
     for _ in range(2):
-        # steps, equivalence_classes = sample(G, n, True, markov_prob, False)
+        # steps, equivalence_classes = sample(G, n, True, markov_prob, True)
         # print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
         # scores = [step[1] for step in steps]
         # plt.plot(np.arange(len(scores)), scores, 'b--')
@@ -77,10 +77,10 @@ def test_convergence():
         scores = [step[1] for step in steps]
         plt.plot(np.arange(len(scores)), scores, 'g--')
 
-        steps, equivalence_classes = sample(G, n)
-        print(f'Classes visited: {len(equivalence_classes)} n={n}')
-        scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores ,  'r-')
+        # steps, equivalence_classes = sample(G, n)
+        # print(f'Classes visited: {len(equivalence_classes)} n={n}')
+        # scores = [step[1] for step in steps]
+        # plt.plot(np.arange(len(scores)), scores ,  'r-')
 
     plt.title(f'{score_name}')
     plt.show()

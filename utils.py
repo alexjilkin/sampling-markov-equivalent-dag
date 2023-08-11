@@ -61,6 +61,7 @@ def get_next_color():
     return color
 
 # Works only for undirected
+# Edit: I think should work for both
 def get_graph_hash_ig(G: ig.Graph) -> str:
     sorted_edges = sorted([tuple(sorted(edge)) for edge in G.get_edgelist()])
     edges_str = str(sorted_edges)

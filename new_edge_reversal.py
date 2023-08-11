@@ -5,8 +5,8 @@ import numpy as np
 from utils import plot
 from probabilities import P, get_local_score, get_scores
 
-def parent_set_score(Xi, pi):
-    return get_local_score(Xi, frozenset(pi))
+def parent_set_score(Xi, pa_i, n):
+    return get_local_score(Xi, frozenset(pa_i), n)
 
 # Calculates Z (18) returns 
 def get_Z1(M:ig.Graph, X) -> (int, list[set]):
@@ -44,6 +44,8 @@ def I(pa, Xj):
 
 def new_edge_reversal_move(G: ig.Graph):
     M = G.copy()
+    n = len(M.vs)
+
     if (len(M.es) < 2):
         return G, False
     
@@ -54,7 +56,7 @@ def new_edge_reversal_move(G: ig.Graph):
 
     ## Second step, sample parent set for Xi ##
     Z2_i, parent_sets = get_Z2(M_prime, Xi, Xj)
-    Q_i_p = np.array([parent_set_score(Xi, parent_set) - Z2_i for parent_set in parent_sets])
+    Q_i_p = np.array([parent_set_score(Xi, parent_set, n) - Z2_i for parent_set in parent_sets])
 
     # Normalize probability
     max_prob = np.max(Q_i_p)
@@ -68,7 +70,7 @@ def new_edge_reversal_move(G: ig.Graph):
 
     ## Third step, sample patern set pj ##
     Z1_j, parent_sets = get_Z1(M_plus, Xj)
-    Q_j_p = np.array([parent_set_score(Xj, parent_set) - Z1_j for parent_set in parent_sets])
+    Q_j_p = np.array([parent_set_score(Xj, parent_set, n) - Z1_j for parent_set in parent_sets])
     max_prob = np.max(Q_j_p)
     Q_j_p_norm = np.exp(Q_j_p - max_prob)
     Q_j_p_norm /= np.sum(Q_j_p_norm)

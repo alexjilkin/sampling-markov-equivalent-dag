@@ -51,11 +51,13 @@ def init_scores(name):
 def get_scores():
     return scores
 
-def get_local_score(v, pi):
-    # Adjust from 0 to 1 counting system, boston starts from 1 but child-5000 starts from 0
-   
+def get_local_score(v, pa_i, n):
+    k = len(pa_i)
+    
     try:
-        res = scores[v][pi]
+        res = scores[v][pa_i]
+        prior = np.log( 1 / binom(n, k))
+        res += prior
     except KeyError:
         res = -np.inf
 
@@ -64,16 +66,18 @@ def get_local_score(v, pi):
 def score(G: ig.Graph):
     score = 0
     n = len(G.vs)
+
     for v in G.vs:
         pi = frozenset(map(lambda x: x, G.predecessors(v)))
-        local_score = get_local_score(v.index, pi)
+        local_score = get_local_score(v.index, pi, n)
         
         # If it is inf, just return
         if (local_score == -np.inf):
             return local_score
+        
         k = len(G.predecessors(v))
-        prior = np.log( 1 / binom(n, k))
-        score += (local_score + prior)
+        
+        score += local_score 
 
     return score
     
