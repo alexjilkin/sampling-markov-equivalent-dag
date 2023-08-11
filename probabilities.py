@@ -53,10 +53,12 @@ def get_scores():
 
 def get_local_score(v, pa_i, n):
     k = len(pa_i)
-    
+
     try:
         res = scores[v][pa_i]
-        prior = np.log( 1 / binom(n, k))
+
+        # Use Koivisto prior
+        prior = np.log(1 / binom(n, k))
         res += prior
     except KeyError:
         res = -np.inf
@@ -74,8 +76,6 @@ def score(G: ig.Graph):
         # If it is inf, just return
         if (local_score == -np.inf):
             return local_score
-        
-        k = len(G.predecessors(v))
         
         score += local_score 
 
