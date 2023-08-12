@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from markov_equivalent import CPDAG, get_markov_equivalent, is_strongly_protected, test_top_orders_distribution
 from new_edge_reversal import new_edge_reversal_move
-from partition import P_partition, create_pratition
+from partition import P_partition, create_pratition, sample_partition
 # from new_edge_reversal import new_edge_reversal_move
 from utils import get_es_diff, get_graph_hash_ig, plot
 import igraph as ig
@@ -38,7 +38,8 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
     for i in range(int(size)):
         if i % 101 == 100:
             partitions = create_pratition(G_i)
-            P_partition(partitions, random.choice(G_i.vs).index)
+            sample_partition(partitions)
+            P_partition(partitions)
 
         if is_markov_equivalent:
             G_i, AMOs = propose_markov_equivalent(G_i)
