@@ -41,6 +41,10 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
             sample_partition(partitions)
             P_partition(partitions)
 
+            sample_partition(partitions)
+            P_partition(partitions)
+
+
         if is_markov_equivalent:
             G_i, AMOs = propose_markov_equivalent(G_i)
         G_i_plus_1, step_type = propose_next(G_i, is_markov_equivalent, markov_prob, is_REV)       
