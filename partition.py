@@ -35,7 +35,7 @@ def P_v(partitions: list[set], v: int):
     if (len(parent_sets) == 0):
         return get_local_score(v, frozenset({}), n)
     
-    scores = [get_local_score(v, p, n) for p in parent_sets]
+    scores = [get_local_score(v, pa, n) for pa in parent_sets]
     return reduce(np.logaddexp, scores)
 
 
@@ -120,24 +120,29 @@ def find_c_min(partitions: list[set], j, i_min):
     return c_min
 
 
-def sample_dag(partitions: list[set]):
+def sample_dag(partitions: list[set], v_count):
     G = ig.Graph(directed=True)
-
+    G.add_vertices(v_count)
     flat_vertices = list(itertools.chain.from_iterable(partitions))
     n = len(flat_vertices)
 
     for v in flat_vertices:
-        target_sum = P_v(partitions, v)
-        j = np.random.randint(0, target_sum)
-
-        sum = 0
         parent_sets = get_permissible_parent_sets(partitions, v)
+        # target_sum = P_v(partitions, v)
+        target_sum = sum([get_local_score(v, pa, n) for pa in parent_sets])
+
+        current_sum = 0
+        j = np.random.uniform(target_sum, 0)
 
         for pa_i in parent_sets:
-            sum = np.logaddexp(sum, get_local_score(v, frozenset(pa_i), n))
+            current_sum = current_sum + get_local_score(v, frozenset(pa_i), n)
 
-            if sum < j:
-                edges = [(v, p) for p in pa_i]
+            if current_sum < j:
+                edges = [(p, v) for p in pa_i]
                 G.add_edges(edges)
+                break
+        # print(sum)
+    
+    return G
 
         

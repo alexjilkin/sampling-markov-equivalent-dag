@@ -2,6 +2,7 @@ import random
 import igraph as ig
 from matplotlib import pyplot as plt
 import numpy as np
+from partition import sample_dag
 
 from probabilities import get_scores, init_scores, score
 from sampling import sample,partition_sampling
@@ -58,13 +59,14 @@ def test_count_equivalences():
     plt.show()
 
 def test_convergence():
-    score_name = 'water-1000'
+    score_name = 'alarm-1000'
     markov_prob = 0.2
     init_scores(score_name)
 
     n = 100
     G = ig.Graph(directed=True)
-    G.add_vertices(len(get_scores()))
+    v_count = len(get_scores())
+    G.add_vertices(v_count)
 
     for _ in range(1):
         # steps, equivalence_classes = sample(G, n, True, markov_prob, True)
@@ -77,9 +79,12 @@ def test_convergence():
         
         # plt.plot(np.arange(len(scores)), scores, 'g--')
 
-        steps = partition_sampling(steps[-1][0], n)
+        steps = partition_sampling(steps[-1][0], 200)
 
         scores = [step[1] for step in steps]
+        scores2 = [score(dag) for dag in dags]
+        dags = [sample_dag(step[0], v_count) for step in steps]
+
         # steps, equivalence_classes = sample(G, n)
         # print(f'Classes visited: {len(equivalence_classes)} n={n}')
         # scores = [step[1] for step in steps]
