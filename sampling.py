@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from markov_equivalent import CPDAG, get_markov_equivalent, is_strongly_protected, test_top_orders_distribution
 from new_edge_reversal import new_edge_reversal_move
-from partition import P_partition, create_pratition, sample_partition
+from partition import P_partition, create_pratition, nbd, sample_partition
 # from new_edge_reversal import new_edge_reversal_move
 from utils import get_es_diff, get_graph_hash_ig, plot
 import igraph as ig
@@ -28,7 +28,6 @@ def count_equivalence_classes(steps):
         equivalence_classes_dict[G_cpdag_hash] += 1
     return equivalence_classes_dict
 
-# G is a UCCG
 def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, is_REV=False):
     G_i: ig.Graph = G.copy()
 
@@ -36,15 +35,6 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
     AMOs = ''
     
     for i in range(int(size)):
-        if i % 101 == 100:
-            partitions = create_pratition(G_i)
-            sample_partition(partitions)
-            P_partition(partitions)
-
-            sample_partition(partitions)
-            P_partition(partitions)
-
-
         if is_markov_equivalent:
             G_i, AMOs = propose_markov_equivalent(G_i)
         G_i_plus_1, step_type = propose_next(G_i, is_markov_equivalent, markov_prob, is_REV)       
@@ -63,6 +53,40 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
 
         steps.append((G_i, current_score))
     return steps, count_equivalence_classes(steps)
+
+# G is a 
+def partition_sampling(G: ig.Graph, size):
+    A_i: list[set] = create_pratition(G.copy())
+
+    steps: list[tuple(ig.Graph, float)] = []
+    
+    for i in range(size):
+        if np.random.uniform() < 0.01:
+            print('skip')
+        else:
+            A_i_p_1 = sample_partition(A_i)
+            m_i = len(A_i)
+            m_i_p_1 = len(A_i_p_1)
+
+            alpha = np.random.uniform()
+            score = P_partition(A_i)
+            proposed_score = P_partition(A_i_p_1)
+            print('current')
+            print(score)
+            print(A_i)
+
+            print('proposed')
+            print(proposed_score)
+            print(A_i_p_1)
+            A = (nbd(A_i, m_i) / nbd(A_i_p_1, m_i_p_1)) * np.exp(proposed_score - score)
+            if alpha < A:
+                A_i = A_i_p_1
+
+        # Sample G
+    
+        steps.append((A_i, score))
+
+    return steps
 
 def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV, is_protected_edge_reversal = False):
     a, b = random.sample(list(G_i.vs), k=2)

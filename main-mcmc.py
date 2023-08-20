@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 from probabilities import get_scores, init_scores, score
-from sampling import sample
+from sampling import sample,partition_sampling
 from utils import plot, seed
 
 
@@ -58,15 +58,15 @@ def test_count_equivalences():
     plt.show()
 
 def test_convergence():
-    score_name = 'asia'
+    score_name = 'water-1000'
     markov_prob = 0.2
     init_scores(score_name)
 
-    n = 1000
+    n = 100
     G = ig.Graph(directed=True)
     G.add_vertices(len(get_scores()))
 
-    for _ in range(2):
+    for _ in range(1):
         # steps, equivalence_classes = sample(G, n, True, markov_prob, True)
         # print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
         # scores = [step[1] for step in steps]
@@ -74,13 +74,16 @@ def test_convergence():
 
         steps, equivalence_classes = sample(G, n, False, markov_prob, True)
         print(f'Classes visited with REV step: {len(equivalence_classes)}, n={n}')
-        scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores, 'g--')
+        
+        # plt.plot(np.arange(len(scores)), scores, 'g--')
 
+        steps = partition_sampling(steps[-1][0], n)
+
+        scores = [step[1] for step in steps]
         # steps, equivalence_classes = sample(G, n)
         # print(f'Classes visited: {len(equivalence_classes)} n={n}')
         # scores = [step[1] for step in steps]
-        # plt.plot(np.arange(len(scores)), scores ,  'r-')
+        plt.plot(np.arange(len(scores)), scores ,  'r-')
 
     plt.title(f'{score_name}')
     plt.show()
