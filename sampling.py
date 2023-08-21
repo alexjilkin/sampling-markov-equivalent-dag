@@ -66,7 +66,6 @@ def partition_sampling(G: ig.Graph, size):
         if np.random.uniform() < 0.01:
             print('skip')
         else:
-            
             m_i = len(A_i)
             A_i_p_1, scores_p_1 = sample_partition(A_i, scores)
             m_i_p_1 = len(A_i_p_1)

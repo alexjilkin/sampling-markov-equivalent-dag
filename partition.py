@@ -65,6 +65,7 @@ def get_permissible_parent_sets(partitions: list[set], v: int):
 
     parent_sets = list(parent_sets_generator())
     parent_sets.append(frozenset())
+    
     return parent_sets
 
 def P_partition(partitions: list[set]) -> list[float]:
@@ -147,21 +148,21 @@ def sample_dag(partitions: list[set], v_count):
 
     for v in flat_vertices:
         parent_sets = get_permissible_parent_sets(partitions, v)
-        # target_sum = P_v(partitions, v)
-        target_sum = sum([get_local_score(v, pa, n) for pa in parent_sets])
+        # target_sum = sum([get_local_score(v, pa, n) for pa in parent_sets])
+        target_sum = np.exp(P_v(partitions, v))
 
-        current_sum = 0
-        j = np.random.uniform(target_sum, 0)
+        current_sum = -np.inf
+        j = np.random.uniform(0, target_sum)
 
         for pa_i in parent_sets:
-            current_sum = current_sum + get_local_score(v, frozenset(pa_i), n)
+            current_sum = np.logaddexp(current_sum, get_local_score(v, frozenset(pa_i), n))
 
-            if current_sum < j:
+            if np.exp(current_sum) >= j:
                 edges = [(p, v) for p in pa_i]
                 G.add_edges(edges)
                 break
-        # print(sum)
-    
+            
+    print('sample')
     return G
 
         

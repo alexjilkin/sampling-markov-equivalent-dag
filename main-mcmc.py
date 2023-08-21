@@ -59,29 +59,31 @@ def test_count_equivalences():
     plt.show()
 
 def test_convergence():
-    score_name = 'hepar2-500'
+    score_name = 'hailfinder-100'
     markov_prob = 0.2
     init_scores(score_name)
 
-    n = 2000
+    n = 300
     G = ig.Graph(directed=True)
     v_count = len(get_scores())
     G.add_vertices(v_count)
 
     for _ in range(1):
-        # steps, equivalence_classes = sample(G, n * 5, False, markov_prob, True)
-        # print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
-        # scores = [step[1] for step in steps][::2]
-        # plt.plot(np.arange(len(scores)), scores, 'b--')
+        step_size = 20
+        steps, equivalence_classes = sample(G, n * step_size, False, markov_prob, True)
+        print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
+        scores = [step[1] for step in steps][::step_size]
+        plt.plot(np.arange(len(scores)), scores, 'g-')
 
         g = ig.Graph(directed=True)
         g.add_vertices(v_count)
         steps = partition_sampling(g, n)
         scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores ,  'r-')
+        plt.plot(np.arange(len(scores)), scores ,  'b--')
 
-        # dags = [sample_dag(step[0], v_count) for step in steps]
-        # scores2 = [score(dag) for dag in dags]
+        dags = [sample_dag(step[0], v_count) for step in steps]
+        scores2 = [score(dag) for dag in dags]
+        plt.plot(np.arange(len(scores2)), scores2 ,  'r--')
 
         # steps, equivalence_classes = sample(G, n)
         # print(f'Classes visited: {len(equivalence_classes)} n={n}')
