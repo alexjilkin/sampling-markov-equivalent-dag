@@ -57,50 +57,42 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
 # G is a 
 def partition_sampling(G: ig.Graph, size):
     A_i: list[set] = create_pratition(G.copy())
+    scores = P_partition(A_i)
 
     steps: list[tuple(ig.Graph, float)] = []
     
     for i in range(size):
+
         if np.random.uniform() < 0.01:
             print('skip')
         else:
-            A_i_p_1 = sample_partition(A_i)
+            
             m_i = len(A_i)
+            A_i_p_1, scores_p_1 = sample_partition(A_i, scores)
             m_i_p_1 = len(A_i_p_1)
 
-            alpha = np.random.uniform()
-            score = P_partition(A_i)
-            proposed_score = P_partition(A_i_p_1)
-            print('current')
-            print(score)
-            print(A_i)
+            score = sum(scores.values())
+            proposed_score = sum(scores_p_1.values())
 
-            print('proposed')
-            print(proposed_score)
-            print(A_i_p_1)
-            A = (nbd(A_i, m_i) / nbd(A_i_p_1, m_i_p_1)) * np.exp(proposed_score - score)
-            if alpha < A:
+            print(f'current {score} {A_i}')
+            print(f'proposed {proposed_score} {A_i_p_1}')
+
+            A = np.min([(nbd(A_i, m_i) / nbd(A_i_p_1, m_i_p_1)) * np.exp(proposed_score - score)])
+
+            if np.random.uniform() < A:
                 A_i = A_i_p_1
-
-        # Sample G
+                scores = scores_p_1
     
-        steps.append((A_i, score))
+        steps.append((A_i, sum(scores.values())))
 
     return steps
 
-def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV, is_protected_edge_reversal = False):
+def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV):
     a, b = random.sample(list(G_i.vs), k=2)
     G_i_plus_1: ig.Graph = G_i.copy()
 
     if (is_REV and np.random.uniform() < 0.066):
         return new_edge_reversal_move(G_i_plus_1)
-    if (is_protected_edge_reversal and np.random.uniform() < 0.):
-        G_i_plus_1 = propose_protected_reverse(G_i)
-
-        if (G_i_plus_1.is_dag()):
-            return G_i_plus_1, 'protected reversal'
-        else:
-            return G_i, False
 
     if is_markov_equivalent and np.random.uniform() < markov_prob:
         G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
@@ -129,6 +121,7 @@ def propose_protected_reverse(G_i: ig.Graph):
     
     if (len(protected_edges) == 0):
         return G_i
+    
     a, b = random.choice(protected_edges).tuple
 
     G_i_plus_1.delete_edges([(a, b)])

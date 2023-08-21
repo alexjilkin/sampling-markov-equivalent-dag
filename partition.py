@@ -32,46 +32,46 @@ def P_v(partitions: list[set], v: int):
     n = len(flat_vertices)
 
     parent_sets = get_permissible_parent_sets(partitions, v)
-    if (len(parent_sets) == 0):
-        return get_local_score(v, frozenset({}), n)
     
     scores = [get_local_score(v, pa, n) for pa in parent_sets]
     return reduce(np.logaddexp, scores)
 
-
 def get_permissible_parent_sets(partitions: list[set], v: int):
-    flat_vertices = list(itertools.chain.from_iterable(partitions))
-
-    # Find the index of vertices "right" to the tested vertex
-    v_index_for_searching = 0 
     partition_index = 0
-
-    for partition in partitions:
+    v_index_for_searching = 0
+    
+    # Find the partition containing v and its index.
+    for i, partition in enumerate(partitions):
+        if v in partition:
+            partition_index = i
+            break
         v_index_for_searching += len(partition)
 
-        if (v in partition):
-            break
-         
-        partition_index += 1
+    # If the vertex is in the last partition, return empty set
+    if partition_index == len(partitions) - 1:
+        return [frozenset()]
 
-    vertices =  flat_vertices[v_index_for_searching:]
-    
-    if (len(vertices) == 0):
-        return []
-    
-    parent_sets = [frozenset(p) for size in range(1, max_parents_size + 1) for p in itertools.permutations(vertices, size)]
+    # Get the vertices to the right of the current vertex's partition.
+    vertices_to_right = list(itertools.chain.from_iterable(partitions[partition_index + 1:]))
 
-    # Get only parents sets which have atleast one member in the partition element immediately to the right
-    partition_to_the_right = partitions[partition_index + 1]
-    parent_sets = [parent_set for parent_set in parent_sets if len(parent_set.intersection(partition_to_the_right)) > 0]
+    # Generator to yield permissible parent sets
+    def parent_sets_generator():
+        partition_to_the_right = partitions[partition_index + 1]
+        for size in range(1, max_parents_size + 1):
+            for p in itertools.permutations(vertices_to_right, size):
+                parent_set = frozenset(p)
+                if len(parent_set.intersection(partition_to_the_right)) > 0:
+                    yield parent_set
 
+    parent_sets = list(parent_sets_generator())
+    parent_sets.append(frozenset())
     return parent_sets
 
-def P_partition(partitions: list[set]):
+def P_partition(partitions: list[set]) -> list[float]:
     flat_vertices = list(itertools.chain.from_iterable(partitions))
 
-    scores = [P_v(partitions, v) for v in flat_vertices]
-    return sum(scores)
+    scores = {v: P_v(partitions, v) for v in flat_vertices}
+    return scores
 
 def nbd_sum(partitions: list[set], m: int):
         return sum([sum([binom(len(partitions[i - 1]), c) for c in range(1, len(partitions[i - 1]))]) for i in range(1, m + 1)])
@@ -79,24 +79,43 @@ def nbd_sum(partitions: list[set], m: int):
 def nbd(partitions: list[set], m: int):
     return m - 1 + nbd_sum(partitions, m)
 
-def sample_partition(prev_partitions: list[set]):
+def sample_partition(prev_partitions: list[set], prev_scores: dict[int, float]):
     partitions = copy.deepcopy(prev_partitions)
+    scores: dict[int, float] = copy.deepcopy(prev_scores)
 
     m = len(partitions)
     nbd = m - 1 + nbd_sum(partitions, m)
 
-    j = np.random.randint(1, nbd)
+    j = random.randint(1, nbd)
+    vertices_to_rescore = set()
 
     if (j < m):
-        new_partition = partitions.pop(j - 1) | partitions.pop(j - 1)
+        # Join partitions
+        partition_1 = partitions.pop(j - 1)
+        partition_2 = partitions.pop(j - 1)
+
+        new_partition = partition_1 | partition_2
         partitions.insert(j-1, new_partition)
+        vertices_to_rescore |= partition_1
+        if j-2 >= 0:
+            vertices_to_rescore |= partitions[j-2]
+
     else:
+        # Split partition
         i_min = find_i_min(partitions, j)
         c_min = find_c_min(partitions, j, i_min)
         new_partition = set(random.sample(list(partitions[i_min - 1]), c_min))
         partitions[i_min - 1] -= new_partition
         partitions.insert(i_min - 1, new_partition)
-    return partitions
+
+        vertices_to_rescore |= new_partition
+        if (i_min - 2 >= 0):
+            vertices_to_rescore |= partitions[i_min - 2]
+
+    for v in vertices_to_rescore:
+        scores[v] = P_v(partitions, v)
+
+    return partitions, scores
 
 def find_i_min(partitions: list[set], j):
     m = len(partitions)
