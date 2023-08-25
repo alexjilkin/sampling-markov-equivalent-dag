@@ -25,8 +25,7 @@ def create_pratition(G: ig.Graph) -> list[set]:
     
     return partitions
 
-# Only parent sets with at least one member in the partition element 
-# immediately to the right need to be included.
+
 def P_v(partitions: list[set], v: int):
     flat_vertices = list(itertools.chain.from_iterable(partitions))
     n = len(flat_vertices)
@@ -34,8 +33,10 @@ def P_v(partitions: list[set], v: int):
     parent_sets = get_permissible_parent_sets(partitions, v)
     
     scores = [get_local_score(v, pa, n) for pa in parent_sets]
-    return reduce(np.logaddexp, scores)
+    return reduce(np.logaddexp, scores, -np.inf)
 
+# Only parent sets with at least one member in the partition element 
+# immediately to the right need to be included.
 def get_permissible_parent_sets(partitions: list[set], v: int):
     partition_index = 0
     v_index_for_searching = 0
@@ -63,8 +64,7 @@ def get_permissible_parent_sets(partitions: list[set], v: int):
                 if len(parent_set.intersection(partition_to_the_right)) > 0:
                     yield parent_set
 
-    parent_sets = list(parent_sets_generator())
-    parent_sets.append(frozenset())
+    parent_sets = list(set(parent_sets_generator()))
     
     return parent_sets
 
@@ -100,7 +100,6 @@ def sample_partition(prev_partitions: list[set], prev_scores: dict[int, float]):
         vertices_to_rescore |= partition_1
         if j-2 >= 0:
             vertices_to_rescore |= partitions[j-2]
-
     else:
         # Split partition
         i_min = find_i_min(partitions, j)
@@ -122,6 +121,7 @@ def find_i_min(partitions: list[set], j):
     m = len(partitions)
     sum = 0
     i_min = 0
+
     while sum < j:
         i_min += 1
         sum = m - 1 + nbd_sum(partitions, i_min)
@@ -137,7 +137,7 @@ def find_c_min(partitions: list[set], j, i_min):
         c_min += 1
         res = m - 1 + base_sum + sum([binom(len(partitions[i_min - 1]), c) for c in range(1, c_min + 1)])
         
-    return c_min
+    return c_min 
 
 
 def sample_dag(partitions: list[set], v_count):
@@ -148,20 +148,29 @@ def sample_dag(partitions: list[set], v_count):
 
     for v in flat_vertices:
         parent_sets = get_permissible_parent_sets(partitions, v)
-        # target_sum = sum([get_local_score(v, pa, n) for pa in parent_sets])
-        target_sum = np.exp(P_v(partitions, v))
+        # target_sum = np.exp(P_v(partitions, v))
 
-        current_sum = -np.inf
-        j = np.random.uniform(0, target_sum)
+        # current_sum = -np.inf
+        # j = np.random.uniform(0, target_sum)
 
-        for pa_i in parent_sets:
-            current_sum = np.logaddexp(current_sum, get_local_score(v, frozenset(pa_i), n))
+        # for pa_i in parent_sets:
+        #     current_sum = np.logaddexp(current_sum, get_local_score(v, frozenset(pa_i), n))
 
-            if np.exp(current_sum) >= j:
-                edges = [(p, v) for p in pa_i]
-                G.add_edges(edges)
-                break
-            
+        #     if np.exp(current_sum) >= j:
+        #         edges = [(p, v) for p in pa_i]
+        #         G.add_edges(edges)
+        #         break
+        pa_i_p = np.array([get_local_score(v, frozenset(pa_i), n) for pa_i in parent_sets])
+
+        # Normalize probability
+        max_prob = np.max(pa_i_p)
+        pa_i_p_norm = np.exp(pa_i_p - max_prob)
+        pa_i_p_norm /= np.sum(pa_i_p_norm)
+
+        new_pa_i = np.random.choice(parent_sets, p=pa_i_p_norm)
+        edges = [(p, v) for p in new_pa_i]
+        G.add_edges(edges)
+
     print('sample')
     return G
 

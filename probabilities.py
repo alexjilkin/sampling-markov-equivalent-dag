@@ -15,10 +15,7 @@ def P(M: ig.Graph):
     
     return f(len(list(M.vs)), G_i_count).prod()
      
-def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
-    proposed_score = score(M_i_plus_1)
-    current_score = score(M_i)
-
+def R(M_i: ig.Graph, M_i_plus_1: ig.Graph, current_score, proposed_score):
     if (proposed_score == -np.inf):
         return 0
 
@@ -30,7 +27,7 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph):
 
     # res = exp * (P(M_i_plus_1) / P(M_i)) * (N(M_i) / N(M_i_plus_1))
     # return exp * (P(M_i_plus_1) / P(M_i))
-    return exp 
+    return exp
 
 # Calculate how many edges can be added without creating a cycle
 def get_edge_addition_count(G: ig.Graph):

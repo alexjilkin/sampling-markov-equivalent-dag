@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from markov_equivalent import CPDAG, get_markov_equivalent, is_strongly_protected, test_top_orders_distribution
 from new_edge_reversal import new_edge_reversal_move
-from partition import P_partition, create_pratition, nbd, sample_partition
-# from new_edge_reversal import new_edge_reversal_move
+from partition import P_partition, create_pratition, nbd, sample_dag, sample_partition
 from utils import get_es_diff, get_graph_hash_ig, plot
 import igraph as ig
 
@@ -46,7 +45,7 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
             print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
             G_i = G_i_plus_1    
         elif (step_type):
-            A = np.min([1, R(G_i, G_i_plus_1)]) 
+            A = np.min([1, R(G_i, G_i_plus_1, current_score, proposed_score)]) 
             if (np.random.uniform() <= A):
                 print(f'{i} {current_score:.2f} {proposed_score:.2f} {AMOs} {get_es_diff(G_i_plus_1, G_i)}, {step_type}')
                 G_i = G_i_plus_1
@@ -55,7 +54,7 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
     return steps, count_equivalence_classes(steps)
 
 # G is a 
-def partition_sampling(G: ig.Graph, size):
+def partition_sampling(G: ig.Graph, size, v_count):
     A_i: list[set] = create_pratition(G.copy())
     scores = P_partition(A_i)
 
@@ -63,7 +62,16 @@ def partition_sampling(G: ig.Graph, size):
     
     for i in range(size):
 
-        if np.random.uniform() < 0.01:
+        # Markov equivalent
+        if (np.random.uniform() < 0.05):
+            G_i = sample_dag(A_i, v_count)
+            G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
+            A_i_p_1 = create_pratition(G_i_plus_1)
+            A_i = A_i_p_1
+            scores = P_partition(A_i)
+
+            print(f'Equivalent step {sum(scores.values())} {A_i}')
+        elif np.random.uniform() < 0.01:
             print('skip')
         else:
             m_i = len(A_i)
@@ -73,12 +81,15 @@ def partition_sampling(G: ig.Graph, size):
             score = sum(scores.values())
             proposed_score = sum(scores_p_1.values())
 
-            print(f'current {score} {A_i}')
-            print(f'proposed {proposed_score} {A_i_p_1}')
-
-            A = np.min([(nbd(A_i, m_i) / nbd(A_i_p_1, m_i_p_1)) * np.exp(proposed_score - score)])
+            score_delta = proposed_score - score
+            if (score_delta > 250):
+                A = 1
+            else:
+                R = (nbd(A_i, m_i) / nbd(A_i_p_1, m_i_p_1)) * np.exp(score_delta)
+                A = np.min([1, R])
 
             if np.random.uniform() < A:
+                print(f'{proposed_score} {A_i_p_1}')
                 A_i = A_i_p_1
                 scores = scores_p_1
     
