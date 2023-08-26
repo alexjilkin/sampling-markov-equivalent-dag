@@ -1,0 +1,4 @@
+numpy
+python-igraph
+scipy
+networkx

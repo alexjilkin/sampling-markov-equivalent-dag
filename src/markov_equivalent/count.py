@@ -1,6 +1,5 @@
 import networkx as nx
 import random
-import time
 from functools import reduce
 from operator import mul
 import numpy as np

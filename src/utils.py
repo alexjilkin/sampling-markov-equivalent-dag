@@ -6,7 +6,6 @@ import hashlib
 from itertools import chain
 import igraph as ig
 
-
 def read_graph_from_file(filename, random_weights=False):
 
     # file = open('./sample.gr', 'r')

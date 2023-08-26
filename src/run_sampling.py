@@ -6,25 +6,25 @@ import partition
 from probabilities import get_scores, init_scores, score
 from sampling import sample
 import partition
-from utils import plot, seed
+from utils import plot
 
 def test_convergence():
     score_name = 'hailfinder-1000'
     init_scores(score_name)
 
-    n = 1000
+    n = 2000
     G = ig.Graph(directed=True)
     v_count = len(get_scores())
     G.add_vertices(v_count)
 
-    for _ in range(1):
+    for _ in range(2):
         step_size = 5
         steps, equivalence_classes = sample(G, n * step_size, False, True)
         print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
         scores = [step[1] for step in steps][::step_size]
         plt.plot(np.arange(len(scores)), scores, 'r-', label="Stractural")
 
-        steps = partition.sample_chain(ig.Graph(directed=True).add_vertices(v_count), n, True)
+        steps = partition.sample_chain(G, n, True)
         scores = [step[1] for step in steps]
         plt.plot(np.arange(len(scores)), scores ,  'b--', label="Partition with MEC")
 
@@ -32,7 +32,7 @@ def test_convergence():
         scores2 = [score(dag) for dag in dags]
         plt.plot(np.arange(len(scores2)), scores2 ,  'r:', label="Dag from partition")
 
-        steps = partition.sample_chain(ig.Graph(directed=True).add_vertices(v_count), n, False)
+        steps = partition.sample_chain(G, n, False)
         scores = [step[1] for step in steps]
         plt.plot(np.arange(len(scores)), scores ,  'g--', label="Partition")
 

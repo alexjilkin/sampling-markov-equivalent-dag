@@ -1,4 +1,4 @@
-from count import count
+from markov_equivalent.count import count
 import time
 import numpy as np
 import networkx as nx
