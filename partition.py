@@ -1,6 +1,7 @@
 import random
 import igraph as ig
 from probabilities import get_local_score
+from sampling import propose_markov_equivalent
 from utils import plot
 import itertools
 from functools import reduce
@@ -174,4 +175,50 @@ def sample_dag(partitions: list[set], v_count):
     print('sample')
     return G
 
+def sample_chain(G: ig.Graph, size, is_markov_equivalent_step):
+    A_i: list[set] = create_pratition(G.copy())
+    scores = P_partition(A_i)
+
+    steps: list[tuple(ig.Graph, float)] = []
+    
+    for i in range(size):
+        skip = False
         
+        # Markov equivalent
+        if (np.random.uniform() < 0.03 and is_markov_equivalent_step):
+            m_i = len(A_i)
+            G_i = sample_dag(A_i, len(G.vs))
+            G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
+
+            A_i = create_pratition(G_i_plus_1)
+            scores = P_partition(A_i)
+            print(f'{i} Equivalent {sum(scores.values())} {A_i} ')
+            skip = True
+        elif np.random.uniform() < 0.01:
+            print('skip')
+            skip = True
+        else:
+            A_i_p_1, scores_p_1 = sample_partition(A_i, scores)
+            
+
+        if (not skip):
+            m_i = len(A_i)
+            m_i_p_1 = len(A_i_p_1)
+            score = sum(scores.values())
+            proposed_score = sum(scores_p_1.values())
+
+            score_delta = proposed_score - score
+            if (score_delta > 250):
+                A = 1
+            else:
+                R = (nbd(A_i, m_i) / nbd(A_i_p_1, m_i_p_1)) * np.exp(score_delta)
+                A = np.min([1, R])
+
+            if np.random.uniform() < A:
+                print(f'{i} {proposed_score} {A_i_p_1}')
+                A_i = A_i_p_1
+                scores = scores_p_1
+    
+        steps.append((A_i, sum(scores.values())))
+
+    return steps

@@ -1,9 +1,8 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from markov_equivalent import CPDAG, get_markov_equivalent, is_strongly_protected, test_top_orders_distribution
+from markov_equivalent import CPDAG, get_markov_equivalent, is_strongly_protected
 from new_edge_reversal import new_edge_reversal_move
-from partition import P_partition, create_pratition, nbd, sample_dag, sample_partition
 from utils import get_es_diff, get_graph_hash_ig, plot
 import igraph as ig
 
@@ -27,9 +26,9 @@ def count_equivalence_classes(steps):
         equivalence_classes_dict[G_cpdag_hash] += 1
     return equivalence_classes_dict
 
-def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, is_REV=False):
+def sample(G: ig.Graph, size, is_markov_equivalent=False, is_REV=False):
     G_i: ig.Graph = G.copy()
-
+    markov_prob = 0.1
     steps: list[tuple(ig.Graph, float)] = []
     AMOs = ''
     
@@ -52,50 +51,6 @@ def sample(G: ig.Graph, size, is_markov_equivalent = False, markov_prob = 0.1, i
 
         steps.append((G_i, current_score))
     return steps, count_equivalence_classes(steps)
-
-# G is a 
-def partition_sampling(G: ig.Graph, size, v_count):
-    A_i: list[set] = create_pratition(G.copy())
-    scores = P_partition(A_i)
-
-    steps: list[tuple(ig.Graph, float)] = []
-    
-    for i in range(size):
-
-        # Markov equivalent
-        if (np.random.uniform() < 0.05):
-            G_i = sample_dag(A_i, v_count)
-            G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
-            A_i_p_1 = create_pratition(G_i_plus_1)
-            A_i = A_i_p_1
-            scores = P_partition(A_i)
-
-            print(f'Equivalent step {sum(scores.values())} {A_i}')
-        elif np.random.uniform() < 0.01:
-            print('skip')
-        else:
-            m_i = len(A_i)
-            A_i_p_1, scores_p_1 = sample_partition(A_i, scores)
-            m_i_p_1 = len(A_i_p_1)
-
-            score = sum(scores.values())
-            proposed_score = sum(scores_p_1.values())
-
-            score_delta = proposed_score - score
-            if (score_delta > 250):
-                A = 1
-            else:
-                R = (nbd(A_i, m_i) / nbd(A_i_p_1, m_i_p_1)) * np.exp(score_delta)
-                A = np.min([1, R])
-
-            if np.random.uniform() < A:
-                print(f'{proposed_score} {A_i_p_1}')
-                A_i = A_i_p_1
-                scores = scores_p_1
-    
-        steps.append((A_i, sum(scores.values())))
-
-    return steps
 
 def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV):
     a, b = random.sample(list(G_i.vs), k=2)
