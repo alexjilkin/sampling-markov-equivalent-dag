@@ -1,7 +1,7 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from markov_equivalent import CPDAG, get_markov_equivalent, is_strongly_protected
+from markov_equivalent.sample import CPDAG, get_markov_equivalent, is_strongly_protected
 from new_edge_reversal import new_edge_reversal_move
 from utils import get_es_diff, get_graph_hash_ig, plot
 import igraph as ig

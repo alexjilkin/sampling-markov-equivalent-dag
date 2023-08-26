@@ -8,6 +8,40 @@ from sampling import sample
 import partition
 from utils import plot, seed
 
+def test_convergence():
+    score_name = 'hailfinder-1000'
+    init_scores(score_name)
+
+    n = 1000
+    G = ig.Graph(directed=True)
+    v_count = len(get_scores())
+    G.add_vertices(v_count)
+
+    for _ in range(1):
+        step_size = 5
+        steps, equivalence_classes = sample(G, n * step_size, False, True)
+        print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
+        scores = [step[1] for step in steps][::step_size]
+        plt.plot(np.arange(len(scores)), scores, 'r-', label="Stractural")
+
+        steps = partition.sample_chain(ig.Graph(directed=True).add_vertices(v_count), n, True)
+        scores = [step[1] for step in steps]
+        plt.plot(np.arange(len(scores)), scores ,  'b--', label="Partition with MEC")
+
+        dags = [partition.sample_dag(step[0], v_count) for step in steps]
+        scores2 = [score(dag) for dag in dags]
+        plt.plot(np.arange(len(scores2)), scores2 ,  'r:', label="Dag from partition")
+
+        steps = partition.sample_chain(ig.Graph(directed=True).add_vertices(v_count), n, False)
+        scores = [step[1] for step in steps]
+        plt.plot(np.arange(len(scores)), scores ,  'g--', label="Partition")
+
+        plt.xlabel('Steps count')
+        plt.ylabel('Score')
+
+    plt.title(f'{score_name}')
+    plt.legend()
+    plt.show()
 
 def test_count_equivalences():
     score_name = 'hailfinder-100'
@@ -55,54 +89,6 @@ def test_count_equivalences():
     # plt.scatter(ns, rev_classes_means)
 
     plt.title(f"{score_name} markov_p={markov_prob}")
-    plt.legend()
-    plt.show()
-
-def test_convergence():
-    score_name = 'hailfinder-1000'
-    markov_prob = 0.2
-    init_scores(score_name)
-
-    n = 100
-    G = ig.Graph(directed=True)
-    v_count = len(get_scores())
-    G.add_vertices(v_count)
-
-    for _ in range(1):
-        step_size = 4
-        steps, equivalence_classes = sample(G, n * step_size, False, True)
-        print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
-        scores = [step[1] for step in steps][::step_size]
-        plt.plot(np.arange(len(scores)), scores, 'r-', label="Stractural")
-
-        g = ig.Graph(directed=True)
-        g.add_vertices(v_count)
-        steps = partition.sample_chain(g, n, True)
-        scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores ,  'b--', label="Partition with MEC")
-
-        dags = [partition.sample_dag(step[0], v_count) for step in steps]
-        scores2 = [score(dag) for dag in dags]
-        plt.plot(np.arange(len(scores2)), scores2 ,  'r:', label="Dag from partition")
-
-        g = ig.Graph(directed=True)
-        g.add_vertices(v_count)
-        steps = partition.sample_chain(g, n, False)
-        scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores ,  'g--', label="Partition")
-
-        # steps, equivalence_classes = sample(G, n, False, 0, True)
-        # scores = [step[1] for step in steps]
-        # plt.plot(np.arange(len(scores)), scores,  'b--', label="Stractural with REV")
-    
-        # steps, equivalence_classes = sample(G, n, False, 0, False)
-        # scores = [step[1] for step in steps]
-        # plt.plot(np.arange(len(scores)), scores,  'r-', label="Stractural")
-
-        plt.xlabel('Steps count')
-        plt.ylabel('Score')
-
-    plt.title(f'{score_name}')
     plt.legend()
     plt.show()
 
