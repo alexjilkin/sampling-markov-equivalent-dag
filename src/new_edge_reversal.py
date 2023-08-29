@@ -92,6 +92,5 @@ def A(M, M_tilda, M_prime, Xi, Xj, Z2_i, Z1_j):
 
     M_tilda_plus = orphan_nodes(M, [Xi])
     third = Z1_j - get_Z1(M_tilda_plus, Xi)[0]
-    # fourth = P(M_tilda) / P(M)
 
     return np.min([1, first * np.exp(second + third)])

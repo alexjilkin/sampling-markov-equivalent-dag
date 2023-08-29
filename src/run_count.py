@@ -3,7 +3,7 @@ import time
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from profiling import print_profiling, record
+from src.profiling import print_profiling, record
 import multiprocessing as mp
 # import cProfile
 

@@ -3,40 +3,49 @@ from matplotlib import pyplot as plt
 import numpy as np
 import partition
 
-from probabilities import get_scores, init_scores, score
+from probabilities import get_scores, init_scores, score, P
 from sampling import sample
 import partition
 from utils import plot
 
 def test_convergence():
-    score_name = 'hailfinder-1000'
+    score_name = 'water-1000'
     init_scores(score_name)
 
-    n = 2000
+    n = 10000
     G = ig.Graph(directed=True)
     v_count = len(get_scores())
     G.add_vertices(v_count)
 
-    for _ in range(2):
+    for i in range(3):
         step_size = 5
+        dag_step_size = 2
+
+        steps, equivalence_classes = sample(G, n * step_size, False, False)
+        print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
+        scores = [step[1] for step in steps][::step_size]
+        plt.plot(np.arange(len(scores)), scores, 'm-', label="Structural basic" if i == 0 else "")
+
         steps, equivalence_classes = sample(G, n * step_size, False, True)
         print(f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
         scores = [step[1] for step in steps][::step_size]
-        plt.plot(np.arange(len(scores)), scores, 'r-', label="Stractural")
+        plt.plot(np.arange(len(scores)), scores, 'c-', label="Structural w/ REV" if i == 0 else "")
 
-        steps = partition.sample_chain(G, n, True)
+        steps = partition.sample_chain(G, n, False, True)
         scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores ,  'b--', label="Partition with MEC")
+        # plt.plot(np.arange(len(scores)), scores ,  'b--', label="Partition /w REV"  if i == 0 else "")
+        dags = [partition.sample_dag(step[0], v_count) for step in steps[::dag_step_size]]
+        dag_scores = np.repeat([score(dag) for dag in dags], dag_step_size)
+        plt.plot(np.arange(len(dag_scores)), dag_scores ,  'g--', label="DAG from partition w/ REV" if i == 1 else "") 
 
-        dags = [partition.sample_dag(step[0], v_count) for step in steps]
-        scores2 = [score(dag) for dag in dags]
-        plt.plot(np.arange(len(scores2)), scores2 ,  'r:', label="Dag from partition")
-
-        steps = partition.sample_chain(G, n, False)
+        steps = partition.sample_chain(G, n, True, True)
         scores = [step[1] for step in steps]
-        plt.plot(np.arange(len(scores)), scores ,  'g--', label="Partition")
+        # plt.plot(np.arange(len(scores)), scores ,  'g--', label="Partition /w REV and MES" if i == 0 else "")
+        dags = [partition.sample_dag(step[0], v_count) for step in steps[::dag_step_size]]
+        dag_scores = np.repeat([score(dag) for dag in dags], dag_step_size)
+        plt.plot(np.arange(len(dag_scores)), dag_scores ,  'b--', label="DAG from partition w/ REV and MES" if i == 1 else "")  
 
-        plt.xlabel('Steps count')
+        plt.xlabel('')
         plt.ylabel('Score')
 
     plt.title(f'{score_name}')

@@ -2,12 +2,14 @@ import random
 import igraph as ig
 from probabilities import get_local_score
 from sampling import propose_markov_equivalent
+from new_edge_reversal import new_edge_reversal_move
 from utils import plot
 import itertools
-from functools import reduce
+from functools import reduce, cache
 import numpy as np
 from scipy.special import binom
 import copy
+
 
 max_parents_size = 3
 
@@ -27,9 +29,8 @@ def create_pratition(G: ig.Graph) -> list[set]:
     return partitions
 
 
-def P_v(partitions: list[set], v: int):
-    flat_vertices = list(itertools.chain.from_iterable(partitions))
-    n = len(flat_vertices)
+def P_v(partitions: list[set], v: int, n):
+    # flat_vertices = itertools.chain.from_iterable(partitions)
 
     parent_sets = get_permissible_parent_sets(partitions, v)
     
@@ -69,26 +70,25 @@ def get_permissible_parent_sets(partitions: list[set], v: int):
     
     return parent_sets
 
-def P_partition(partitions: list[set]) -> list[float]:
+def P_partition(partitions: list[set], n: int) -> list[float]:
     flat_vertices = list(itertools.chain.from_iterable(partitions))
 
-    scores = {v: P_v(partitions, v) for v in flat_vertices}
+    scores = {v: P_v(partitions, v, n) for v in flat_vertices}
     return scores
 
-def nbd_sum(partitions: list[set], m: int):
+def nbd_sum(partitions: tuple[set], m: int):
         return sum([sum([binom(len(partitions[i - 1]), c) for c in range(1, len(partitions[i - 1]))]) for i in range(1, m + 1)])
 
 def nbd(partitions: list[set], m: int):
     return m - 1 + nbd_sum(partitions, m)
 
-def sample_partition(prev_partitions: list[set], prev_scores: dict[int, float]):
+def sample_partition(prev_partitions: list[set], prev_scores: dict[int, float], n: int):
     partitions = copy.deepcopy(prev_partitions)
     scores: dict[int, float] = copy.deepcopy(prev_scores)
 
     m = len(partitions)
-    nbd = m - 1 + nbd_sum(partitions, m)
 
-    j = random.randint(1, nbd)
+    j = random.randint(1, nbd(partitions, m))
     vertices_to_rescore = set()
 
     if (j < m):
@@ -114,7 +114,7 @@ def sample_partition(prev_partitions: list[set], prev_scores: dict[int, float]):
             vertices_to_rescore |= partitions[i_min - 2]
 
     for v in vertices_to_rescore:
-        scores[v] = P_v(partitions, v)
+        scores[v] = P_v(partitions, v, n)
 
     return partitions, scores
 
@@ -141,21 +141,21 @@ def find_c_min(partitions: list[set], j, i_min):
     return c_min 
 
 
-def sample_dag(partitions: list[set], v_count):
+def sample_dag(partitions: list[set], n: int):
     G = ig.Graph(directed=True)
-    G.add_vertices(v_count)
-    flat_vertices = list(itertools.chain.from_iterable(partitions))
-    n = len(flat_vertices)
+    G.add_vertices(n)
+
+    flat_vertices = itertools.chain.from_iterable(partitions)
 
     for v in flat_vertices:
         parent_sets = get_permissible_parent_sets(partitions, v)
-        # target_sum = np.exp(P_v(partitions, v))
+        # target_sum = P_v(partitions, v, n)
 
-        # current_sum = -np.inf
-        # j = np.random.uniform(0, target_sum)
+        # current_sum = np.log(0)
+        # j = target_sum + np.log(np.random.uniform())
 
         # for pa_i in parent_sets:
-        #     current_sum = np.logaddexp(current_sum, get_local_score(v, frozenset(pa_i), n))
+        #     current_sum = np.logaddexp(current_sum, get_local_score(v, pa_i, n))
 
         #     if np.exp(current_sum) >= j:
         #         edges = [(p, v) for p in pa_i]
@@ -175,37 +175,51 @@ def sample_dag(partitions: list[set], v_count):
     print('sample')
     return G
 
-def sample_chain(G: ig.Graph, size, is_markov_equivalent_step):
-    A_i: list[set] = create_pratition(G.copy())
-    scores = P_partition(A_i)
+def sample_chain(G: ig.Graph, size, is_markov_equivalent_step, is_REV):
+    A_i: list[set] = create_pratition(G)
+    n = len(G.vs)
+    scores = P_partition(A_i, n)
 
-    steps: list[tuple(ig.Graph, float)] = []
+    steps: list[tuple(ig.Graph, float)] = [(A_i, sum(scores.values()))]
     
     for i in range(size):
         skip = False
         
+        if (is_REV and np.random.uniform() < 0.04):
+            m_i = len(A_i)
+            G_i = sample_dag(A_i, len(G.vs))
+            G_i_plus_1, type = new_edge_reversal_move(G_i)
+
+            A_i = create_pratition(G_i_plus_1)
+            scores = P_partition(A_i, n)
+            print(f'{i} REV {sum(scores.values())} {A_i} ')
+            skip = True
         # Markov equivalent
-        if (np.random.uniform() < 0.03 and is_markov_equivalent_step):
+        elif (is_markov_equivalent_step and np.random.uniform() < 0.03):
             m_i = len(A_i)
             G_i = sample_dag(A_i, len(G.vs))
             G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
 
             A_i = create_pratition(G_i_plus_1)
-            scores = P_partition(A_i)
+            scores = P_partition(A_i, n)
             print(f'{i} Equivalent {sum(scores.values())} {A_i} ')
             skip = True
         elif np.random.uniform() < 0.01:
             print('skip')
             skip = True
         else:
-            A_i_p_1, scores_p_1 = sample_partition(A_i, scores)
-            
+            A_i_p_1, scores_p_1 = sample_partition(A_i, scores, n)
+        
+       
 
         if (not skip):
             m_i = len(A_i)
             m_i_p_1 = len(A_i_p_1)
+           
             score = sum(scores.values())
             proposed_score = sum(scores_p_1.values())
+            
+            print(f'{i} {proposed_score} {A_i_p_1}')
 
             score_delta = proposed_score - score
             if (score_delta > 250):
@@ -215,7 +229,6 @@ def sample_chain(G: ig.Graph, size, is_markov_equivalent_step):
                 A = np.min([1, R])
 
             if np.random.uniform() < A:
-                print(f'{i} {proposed_score} {A_i_p_1}')
                 A_i = A_i_p_1
                 scores = scores_p_1
     

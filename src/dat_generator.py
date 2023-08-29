@@ -3,7 +3,7 @@ from pgmpy.sampling import BayesianModelSampling
 import pandas as pd
 
 # Load the .bif file
-network_name = 'hailfinder'
+network_name = 'earthquake'
 reader = BIFReader(f'./data/networks/{network_name}.bif')
 sample_size = 1000
 
