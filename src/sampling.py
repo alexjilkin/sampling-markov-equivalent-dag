@@ -56,7 +56,7 @@ def propose_next(G_i: ig.Graph, is_markov_equivalent, markov_prob, is_REV):
     a, b = random.sample(list(G_i.vs), k=2)
     G_i_plus_1: ig.Graph = G_i.copy()
 
-    if (is_REV and np.random.uniform() < 0.066):
+    if (is_REV and np.random.uniform() < 0.07):
         return new_edge_reversal_move(G_i_plus_1)
 
     if is_markov_equivalent and np.random.uniform() < markov_prob:

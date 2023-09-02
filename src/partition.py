@@ -175,32 +175,34 @@ def sample_dag(partitions: list[set], n: int):
     print('sample')
     return G
 
-def sample_chain(G: ig.Graph, size, is_markov_equivalent_step, is_REV):
+def sample_chain(G: ig.Graph, size, is_markov_equivalent_step, markov_prob, is_REV, rev_prob):
     A_i: list[set] = create_pratition(G)
     n = len(G.vs)
     scores = P_partition(A_i, n)
 
-    steps: list[tuple(ig.Graph, float)] = [(A_i, sum(scores.values()))]
+    G_i = G
+
+    steps: list[tuple(ig.Graph, float)] = [(A_i, sum(scores.values()), G_i)]
     
     for i in range(size):
         skip = False
         
-        if (is_REV and np.random.uniform() < 0.04):
+        if (is_REV and np.random.uniform() < rev_prob):
             m_i = len(A_i)
             G_i = sample_dag(A_i, len(G.vs))
-            G_i_plus_1, type = new_edge_reversal_move(G_i)
+            G_i, type = new_edge_reversal_move(G_i)
 
-            A_i = create_pratition(G_i_plus_1)
+            A_i = create_pratition(G_i)
             scores = P_partition(A_i, n)
             print(f'{i} REV {sum(scores.values())} {A_i} ')
             skip = True
         # Markov equivalent
-        elif (is_markov_equivalent_step and np.random.uniform() < 0.03):
+        elif (is_markov_equivalent_step and np.random.uniform() < markov_prob):
             m_i = len(A_i)
             G_i = sample_dag(A_i, len(G.vs))
-            G_i_plus_1, AMOs = propose_markov_equivalent(G_i)
+            G_i, AMOs = propose_markov_equivalent(G_i)
 
-            A_i = create_pratition(G_i_plus_1)
+            A_i = create_pratition(G_i)
             scores = P_partition(A_i, n)
             print(f'{i} Equivalent {sum(scores.values())} {A_i} ')
             skip = True
@@ -210,8 +212,6 @@ def sample_chain(G: ig.Graph, size, is_markov_equivalent_step, is_REV):
         else:
             A_i_p_1, scores_p_1 = sample_partition(A_i, scores, n)
         
-       
-
         if (not skip):
             m_i = len(A_i)
             m_i_p_1 = len(A_i_p_1)
@@ -232,6 +232,6 @@ def sample_chain(G: ig.Graph, size, is_markov_equivalent_step, is_REV):
                 A_i = A_i_p_1
                 scores = scores_p_1
     
-        steps.append((A_i, sum(scores.values())))
+        steps.append((A_i, sum(scores.values()), G_i))
 
     return steps
