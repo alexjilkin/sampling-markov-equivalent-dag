@@ -2,25 +2,31 @@ import igraph as ig
 from matplotlib import pyplot as plt
 import numpy as np
 import partition
+import os
+import sys
 
 from probabilities import get_scores, init_scores, score, P
 from sampling import sample
 import partition
 from utils import plot
 
+score_name = sys.argv[1]
+i = int(sys.argv[2])
+
 
 def test_convergence():
-    score_name = 'win95pts-500'
     init_scores(score_name)
 
-    n = 6000
+    n = 1000
     G = ig.Graph(directed=True)
     v_count = len(get_scores())
     G.add_vertices(v_count)
 
-    for i in range(2):
+    if not os.path.exists(f'res/{score_name}/'):
+        os.makedirs(f'res/{score_name}/')
+
+    for _ in range(1):
         step_size = 5
-        dag_step_size = 2
 
         steps, equivalence_classes = sample(G, n * step_size * 2, False, False)
         print(
@@ -28,6 +34,8 @@ def test_convergence():
         scores = [step[1] for step in steps][::(step_size * 2)]
         plt.plot(np.arange(len(scores)), scores, 'm-',
                  label="Structural basic" if i == 0 else "")
+        with open(f"res/{score_name}/stractural_basic_{i}.csv", "w") as f:
+            f.write(','.join(map(str, scores)))
 
         steps, equivalence_classes = sample(G, n * step_size, False, True)
         print(
@@ -35,17 +43,24 @@ def test_convergence():
         scores = [step[1] for step in steps][::step_size]
         plt.plot(np.arange(len(scores)), scores, 'c-',
                  label="Structural w/ REV" if i == 0 else "")
+        with open(f"res/{score_name}/stractural_ref_{i}.csv", "w") as f:
+            f.write(','.join(map(str, scores)))
 
-        steps = partition.sample_chain(G, n, False, 0, True, 0.07)
+        steps = partition.sample_chain(G, n, False, 0, True, 0.066)
         dag_scores = [score(step[2]) for step in steps]
-        # plt.plot(np.arange(len(scores)), scores ,  'b--', label="Partition /w REV"  if i == 0 else "")
+        plt.plot(np.arange(len(scores)), scores,  'b--',
+                 label="Partition /w REV" if i == 0 else "")
         plt.plot(np.arange(len(dag_scores)), dag_scores,  'g--',
                  label="DAG from partition w/ REV" if i == 1 else "")
+        with open(f"res/{score_name}/partition_w_rev_{i}.csv", "w") as f:
+            f.write(','.join(map(str, dag_scores)))
 
-        steps = partition.sample_chain(G, n, True, 0.06, True, 0.06)
+        steps = partition.sample_chain(G, n, True, 0.066, True, 0.066)
         dag_scores = [score(step[2]) for step in steps]
         plt.plot(np.arange(len(dag_scores)), dag_scores,  'b--',
                  label="DAG from partition w/ REV and MES" if i == 1 else "")
+        with open(f"res/{score_name}/partition_w_ref_a_mes_{i}.csv", "w") as f:
+            f.write(','.join(map(str, dag_scores)))
 
         plt.xlabel('')
         plt.ylabel('Score')

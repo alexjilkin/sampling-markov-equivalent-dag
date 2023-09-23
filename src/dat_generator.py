@@ -3,9 +3,9 @@ from pgmpy.sampling import BayesianModelSampling
 import pandas as pd
 
 # Load the .bif file
-network_name = 'earthquake'
+network_name = 'insurance'
 reader = BIFReader(f'./data/networks/{network_name}.bif')
-sample_size = 1000
+sample_size = 400
 
 model = reader.get_model()
 
@@ -24,11 +24,12 @@ samples = samples.replace(mapping)
 with open(f'{network_name}-{sample_size}.dat', 'w') as f:
     # Write variable names (0 to n)
     f.write(' '.join(map(str, range(len(model.nodes())))) + '\n')
-    
+
     # Write the number of categories
-    categories = [len(model.get_cpds(var).state_names[var]) for var in model.nodes()]
+    categories = [len(model.get_cpds(var).state_names[var])
+                  for var in model.nodes()]
     f.write(' '.join(map(str, categories)) + '\n')
-    
+
     # Write the samples
     for _, row in samples.iterrows():
         f.write(' '.join(map(str, row.values.tolist())) + '\n')
