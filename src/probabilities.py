@@ -2,19 +2,24 @@ import igraph as ig
 import numpy as np
 from utils import plot, read_scores_from_file
 from scipy.special import binom
+from itertools import chain, combinations
+import random
+
 
 def N(G: ig.Graph):
-    return get_edge_addition_count(G) + G.ecount() +  G.ecount()
+    return get_edge_addition_count(G) + G.ecount() + G.ecount()
 
-# Koivisto prior
+
 def P(M: ig.Graph):
-    def f(n, G_i_count):    
+    def f(n, G_i_count):
         return 1 / binom(n - 1, G_i_count)
-    
-    G_i_count = np.fromiter(map(lambda v: len(list(M.predecessors(v))), M.vs), int)
-    
+
+    G_i_count = np.fromiter(
+        map(lambda v: len(list(M.predecessors(v))), M.vs), int)
+
     return f(len(list(M.vs)), G_i_count).prod()
-     
+
+
 def R(M_i: ig.Graph, M_i_plus_1: ig.Graph, current_score, proposed_score):
     if (proposed_score == -np.inf):
         return 0
@@ -30,23 +35,63 @@ def R(M_i: ig.Graph, M_i_plus_1: ig.Graph, current_score, proposed_score):
     return exp
 
 # Calculate how many edges can be added without creating a cycle
+
+
 def get_edge_addition_count(G: ig.Graph):
     n = G.vcount()
-    
+
     return n*(n-1)
 
-# Calculate how many edges can be added without creating a cycle
+
 def get_edge_reversal_count(G: ig.Graph):
     return len(G.es)
 
+
 scores = []
+
 
 def init_scores(name):
     global scores
     scores = read_scores_from_file(f'data/scores/{name}.jkl')
 
+
 def get_scores():
+    prune_scores(5)
     return scores
+
+
+def psi(i, j, S: frozenset[int]):
+    Rs = np.array([frozenset(subset) for subset in chain.from_iterable(combinations(list(S), r)
+                                                                       for r in range(len(S)+1))
+                  if j in subset])
+    res = [pi(i, R)*weight(R, S) for R in Rs]
+    print(res)
+
+
+beta_R = 0.1
+K = 4
+
+
+def weight(R, S):
+    return (1+beta_R)**(len(R)-K) * (beta_R)**(len(S)-K)
+
+
+def pi(v, pa_i):
+    k = len(pa_i)
+
+    try:
+        res = scores[v][pa_i]
+    except KeyError:
+        res = -np.inf
+
+    return res
+
+
+def prune_scores(i):
+    S = list(scores[i].keys())[0]
+    j = list(S)[0]
+    psi(i, j, S)
+
 
 def get_local_score(v, pa_i, n):
     k = len(pa_i)
@@ -62,6 +107,7 @@ def get_local_score(v, pa_i, n):
 
     return res
 
+
 def score(G: ig.Graph):
     score = 0
     n = len(G.vs)
@@ -69,12 +115,11 @@ def score(G: ig.Graph):
     for v in G.vs:
         pi = frozenset(map(lambda x: x, G.predecessors(v)))
         local_score = get_local_score(v.index, pi, n)
-        
+
         # If it is inf, just return
         if (local_score == -np.inf):
             return local_score
-        
-        score += local_score 
+
+        score += local_score
 
     return score
-    

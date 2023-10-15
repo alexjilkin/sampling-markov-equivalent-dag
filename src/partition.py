@@ -10,7 +10,7 @@ import numpy as np
 from scipy.special import binom
 import copy
 
-max_parents_size = 4
+max_parents_size = 3
 
 
 def create_pratition(G: ig.Graph) -> list[set]:
