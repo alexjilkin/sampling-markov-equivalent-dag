@@ -5,7 +5,7 @@ import partition
 import os
 import sys
 
-from probabilities import get_scores, init_scores, score, P
+from probabilities import get_scores, init_pruned_scores, init_scores, score, P
 from sampling import sample
 import partition
 from utils import plot
@@ -14,9 +14,9 @@ from utils import plot
 # i = int(sys.argv[2])
 # n = int(sys.argv[3])
 
-score_name = 'asia'
+score_name = 'hailfinder-500'
 i = 1
-n = 1000
+n = 10000
 
 
 def test_convergence():
@@ -30,40 +30,48 @@ def test_convergence():
     #     os.makedirs(f'res/{score_name}/')
 
     for i in range(1):
-        step_size = 5
+        step_size = 1
 
         steps, equivalence_classes = sample(G, n * step_size * 2, False, False)
-        print(
-            f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
         scores = [step[1] for step in steps][::(step_size * 2)]
         plt.plot(np.arange(len(scores)), scores, 'm-',
-                 label="Structural basic" if i == 0 else "")
+                 label="Structural basic" if i == 0 else "Structural basic prune")
         # with open(f"res/{score_name}/stractural_basic_{i}.csv", "w") as f:
         #     f.write(','.join(map(str, scores)))
 
         steps, equivalence_classes = sample(G, n * step_size, False, True)
-        print(
-            f'Classes visited with equivalence: {len(equivalence_classes)}, n={n}')
         scores = [step[1] for step in steps][::step_size]
         plt.plot(np.arange(len(scores)), scores, 'c-',
-                 label="Structural w/ REV" if i == 0 else "")
+                 label="Structural w/ REV" if i == 0 else "Structural w/ REV prune")
+
+        init_pruned_scores()
+
+        steps, equivalence_classes = sample(G, n * step_size * 2, False, False)
+        scores = [step[1] for step in steps][::(step_size * 2)]
+        plt.plot(np.arange(len(scores)), scores, 'm--',
+                 label="Structural basic prune")
+
+        steps, equivalence_classes = sample(G, n * step_size, False, True)
+        scores = [step[1] for step in steps][::step_size]
+        plt.plot(np.arange(len(scores)), scores, 'c--',
+                 label="Structural w/ REV prune")
         # with open(f"res/{score_name}/stractural_rev_{i}.csv", "w") as f:
         #     f.write(','.join(map(str, scores)))
 
-        steps = partition.sample_chain(G, n, False, 0, True, 0.066)
-        dag_scores = [score(step[2]) for step in steps]
+        # steps = partition.sample_chain(G, n, False, 0, True, 0.066)
+        # dag_scores = [score(step[2]) for step in steps]
 
-        plt.plot(np.arange(len(dag_scores)), dag_scores,  'g--',
-                 label="DAG from partition w/ REV" if i == 0 else "")
-        # with open(f"res/{score_name}/partition_w_rev_{i}.csv", "w") as f:
-        #     f.write(','.join(map(str, dag_scores)))
+        # plt.plot(np.arange(len(dag_scores)), dag_scores,  'g--',
+        #          label="DAG from partition w/ REV" if i == 0 else "")
+        # # with open(f"res/{score_name}/partition_w_rev_{i}.csv", "w") as f:
+        # #     f.write(','.join(map(str, dag_scores)))
 
-        steps = partition.sample_chain(G, n, True, 0.066, True, 0.066)
-        dag_scores = [score(step[2]) for step in steps]
-        plt.plot(np.arange(len(dag_scores)), dag_scores,  'b--',
-                 label="DAG from partition w/ REV and MES" if i == 0 else "")
-        # with open(f"res/{score_name}/partition_w_ref_a_mes_{i}.csv", "w") as f:
-        #     f.write(','.join(map(str, dag_scores)))
+        # steps = partition.sample_chain(G, n, True, 0.066, True, 0.066)
+        # dag_scores = [score(step[2]) for step in steps]
+        # plt.plot(np.arange(len(dag_scores)), dag_scores,  'b--',
+        #          label="DAG from partition w/ REV and MES" if i == 0 else "")
+        # # with open(f"res/{score_name}/partition_w_ref_a_mes_{i}.csv", "w") as f:
+        # #     f.write(','.join(map(str, dag_scores)))
 
         plt.xlabel('')
         plt.ylabel('Score')

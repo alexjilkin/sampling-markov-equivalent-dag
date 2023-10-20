@@ -1,9 +1,9 @@
-from functools import reduce
 import random
 import igraph as ig
 import numpy as np
 from utils import plot
 from probabilities import P, get_local_score, get_scores
+from scipy.special import logsumexp
 
 
 def parent_set_score(Xi, pa_i, n):
@@ -24,9 +24,11 @@ def get_Z1(M: ig.Graph, X) -> (int, list[set]):
 
 
 def sum_scores(X, parent_sets):
+    if (len(parent_sets) == 0):
+        return -np.inf
     scores_dict = get_scores()[X]
     scores = [scores_dict[pa] for pa in parent_sets]
-    return reduce(np.logaddexp, scores)
+    return logsumexp(scores)
 
 # Calculates Z (19)
 
