@@ -16,20 +16,20 @@ from utils import plot
 
 score_name = 'hailfinder-500'
 i = 1
-n = 10000
+n = 1000
 
 
 def test_convergence():
     init_scores(score_name)
 
-    G = ig.Graph(directed=True)
-    v_count = len(get_scores())
-    G.add_vertices(v_count)
-
     # if not os.path.exists(f'res/{score_name}/'):
     #     os.makedirs(f'res/{score_name}/')
 
-    for i in range(1):
+    for i in range(2):
+        init_scores(score_name)
+        G = ig.Graph(directed=True)
+        v_count = len(get_scores())
+        G.add_vertices(v_count)
         step_size = 1
 
         steps, equivalence_classes = sample(G, n * step_size * 2, False, False)
