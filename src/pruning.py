@@ -42,15 +42,16 @@ def count_scores(scores):
 def psi(i, j, S: frozenset[int]):
     global scores
 
-    Rs = np.array([frozenset(subset) for subset in chain.from_iterable(combinations(list(S), r)
-                                                                       for r in range(len(S)+1))
+    Rs = np.array([frozenset(subset)
+                   for subset in chain.from_iterable(combinations(list(S), r)
+                                                     for r in range(len(S)+1))
                   if j in subset])
     res = [pi(i, R)+np.log(w(R, S)) for R in Rs]
     return logsumexp(res)
 
 
 def w(R, S):
-    return (1+beta_R)**(len(R)-K) * (1/beta_R)**(len(R)-len(S))
+    return (1+beta_R)**(len(R)-K) * (beta_R)**(len(S)-len(R))
 
 
 def pi(v, pa_i):
@@ -78,9 +79,9 @@ def prune_scores_node(i):
 
         is_prune = True
         for j in list(S):
-            # Opposite sign because of log prob
             if (pi(i, S) >= (np.log(eps) + psi(i, j, S))):
                 is_prune = False
+                break
 
         if (is_prune):
             del scores[i][S]

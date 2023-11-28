@@ -3,9 +3,9 @@ from pgmpy.sampling import BayesianModelSampling
 import pandas as pd
 
 # Load the .bif file
-network_name = 'insurance'
+network_name = 'cancer'
 reader = BIFReader(f'./data/networks/{network_name}.bif')
-sample_size = 400
+sample_size = 10000
 
 model = reader.get_model()
 
